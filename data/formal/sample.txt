@@ -1,6 +1,0 @@
-ID=0 log probability=-1.0228e-01
-all x01.(_woman(x01) -> exists x02.((_coffee(x02) | _tea_DOT(x02)) & exists e03.(_order(e03) & (Subj(e03) = x01) & (Acc(e03) = x02))))
-ID=1 log probability=-1.0286e-01
--exists x04.(_woman(x04) & exists x05.(_coffee_DOT(x05) & exists e06.(_order(e06) & (Subj(e06) = x04) & (Acc(e06) = x05))))
-ID=2 log probability=-4.9974e-01
-exists x07.(_woman(x07) & exists x08.(_tea_DOT(x08) & exists e09.(_order(e09) & (Subj(e09) = x07) & (Acc(e09) = x08))))

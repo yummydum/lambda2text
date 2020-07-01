@@ -1,42 +1,46 @@
 from pathlib import Path
 import re
+from transformers import AlbertTokenizer
+
 
 data_path = Path('../data/formal')
+TOKENIZER = AlbertTokenizer.from_pretrained('albert-base-v2')
 
 
 def main():
-
-    token2id = dict()
-
     for source in data_path.iterdir():
-        tokenized_path = Path(str(source).replace('formal', 'formal_cleaned'))
-        encoded_path = Path(str(source).replace('formal', 'formal_encoded'))
-        with source.open(mode='r') as f_r:
-            with tokenized_path.open(mode='w') as f_w:
-                with encoded_path.open(mode='w') as f_w2:
-                    for line in f_r:
+        text_path  = Path(str(source).replace('formal', 'glue'))
+        source_text = Path(str(source).replace('formal', 'source'))
+        result_path = Path(str(source).replace('formal', 'pairs').replace('.txt','.tsv'))
 
-                        if line.startswith('ID=') or line == 'FAILED!\n':
+        with source.open(mode='r') as f_r:
+            with text_path.open(mode='r') as f_r2:
+                with result_path.open(mode='w') as f_w:
+                    f_w.write('formal\tencoded\n')
+                    for line in f_r:
+                        if line.startswith('ID='):
                             continue
+                        elif line == 'FAILED!\n':
+                            next(f_r2)
+                            continue
+
+                        text = next(f_r2)
+                        encoded = TOKENIZER.encode(text)
+                        encoded = ' '.join([str(i) for i in encoded])
 
                         # add space for tokenization
                         line = line.replace('(', ' ( ').replace(')', ' ) ')
 
                         # normalize variable num
-                        for c in ['x', 'e']:
+                        for c in ['x', 'e','F','DOT']:
                             variables = re.findall(f'{c}' + r'\d+', line)
                             variables = sorted(list(set(variables)))
                             for i, v in enumerate(variables):
                                 line = line.replace(v, f' {c}{i} ')
 
                         # Tokenized
-                        tokens = line.split()
-                        f_w.write(' '.join(tokens) + '\n')
-
-                        # Encoded
-                        encoded = []
-                        for t in tokens:
-                            if t not in token2id:
-                                token2id[t] = len(token2id.keys())
-                            encoded.append(token2id[t])
-                        f_w2.write(' '.join(encoded) + '\n')
+                        formal = ' '.join(line.split())
+                        f_w.write(f'{formal}\t{encoded}\n')
+    
+if __name__ == "__main__":
+    main()

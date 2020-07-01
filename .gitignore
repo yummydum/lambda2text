@@ -3,3 +3,4 @@ pmb-sample-3.0.0.zip
 data/*
 .vscode
 *.python-version
+*__pycache__
