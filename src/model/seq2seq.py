@@ -1,6 +1,8 @@
-from transformers import AlbertModel
+from transformers import AlbertModel, AlbertPreTrainedModel
 from transformers.modeling_bert import ACT2FN
 import torch
+from torch import nn
+
 
 class AlbertDecoder(nn.Module):
     def __init__(self, config):
@@ -22,6 +24,7 @@ class AlbertDecoder(nn.Module):
         prediction_score = self.decoder(hidden_states)
         return prediction_score
 
+
 class AlbertSeq2Seq(AlbertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
@@ -33,10 +36,12 @@ class AlbertSeq2Seq(AlbertPreTrainedModel):
         self.tie_weights()
 
     def tie_weights(self):
-        self._tie_or_clone_weights(self.decoder.decoder, self.encoder.embeddings.word_embeddings)
+        self._tie_or_clone_weights(self.decoder.decoder,
+                                   self.encoder.embeddings.word_embeddings)
 
     def forward(self, input_ids=None, attention_mask=None):
-    outputs = self.albert(input_ids=input_ids,attention_mask=attention_mask)
-    sequence_outputs = outputs[0]
-    prediction_scores = self.decoder(sequence_outputs)
-    return prediction_score
+        outputs = self.encoder(input_ids=input_ids,
+                               attention_mask=attention_mask)
+        sequence_outputs = outputs[0]
+        prediction_scores = self.decoder(sequence_outputs)
+        return prediction_scores

@@ -2,16 +2,15 @@ from pathlib import Path
 import re
 from transformers import AlbertTokenizer
 
-
 data_path = Path('../data/formal')
 TOKENIZER = AlbertTokenizer.from_pretrained('albert-base-v2')
 
 
 def main():
     for source in data_path.iterdir():
-        text_path  = Path(str(source).replace('formal', 'glue'))
-        source_text = Path(str(source).replace('formal', 'source'))
-        result_path = Path(str(source).replace('formal', 'pairs').replace('.txt','.tsv'))
+        text_path = Path(str(source).replace('formal', 'glue'))
+        result_path = Path(
+            str(source).replace('formal', 'pairs').replace('.txt', '.tsv'))
 
         with source.open(mode='r') as f_r:
             with text_path.open(mode='r') as f_r2:
@@ -32,7 +31,7 @@ def main():
                         line = line.replace('(', ' ( ').replace(')', ' ) ')
 
                         # normalize variable num
-                        for c in ['x', 'e','F','DOT']:
+                        for c in ['x', 'e', 'F', 'DOT']:
                             variables = re.findall(f'{c}' + r'\d+', line)
                             variables = sorted(list(set(variables)))
                             for i, v in enumerate(variables):
@@ -41,6 +40,7 @@ def main():
                         # Tokenized
                         formal = ' '.join(line.split())
                         f_w.write(f'{formal}\t{encoded}\n')
-    
+
+
 if __name__ == "__main__":
     main()

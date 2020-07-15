@@ -1,18 +1,15 @@
 import argparse
-from pathlib import Path
 import random
-import sys
-sys.path.append('..')
 
+import numpy as np
 from tqdm import tqdm
 import torch
-from torch.utils.data import DataLoader
 from transformers import AlbertConfig
-from transformers.optimization import AdamW, get_linear_schedule_with_warmup
 import wandb
 
-from models.seq2seq import AlbertSeq2seq
-from preprocess.dataset import FormalSurfacePair
+from model.seq2seq import AlbertSeq2Seq
+from preprocess.dataset import read_pairs
+from trainer.utils import get_optimzer, get_scheduler, hinge_loss
 
 random.seed(42)
 torch.manual_seed(42)
@@ -24,31 +21,30 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
+
 def main():
 
     args = set_args()
     config = AlbertConfig(vocab_size=17229)
 
+    # Init model
+    model = AlbertSeq2Seq(config).to(device)
+
     # set up wandb
     wandb.init(save_code=True)
     wandb.run.name = wandb.run.id
     wandb.config.update(args)
-
-    # Init model
-    model = AlbertSeq2seq(config).to(device)
     wandb.watch(model)
 
     # Load datasets
-    dataset = FormalSurfacePair()
-    dataset = DataLoader(dataset, shuffle=True, device=device)
+    dataset = read_pairs(args.batch_size, device)
 
     # Loss, optimizer
     num_step = len(dataset) * args.epoch_num
-    optimizer = utils.get_optimzer(model, args.lr, args.decay)
-    scheduler = utils.get_scheduler(optimizer, num_step, args.warmup_step)
+    optimizer = get_optimzer(model, args.lr, args.decay)
+    scheduler = get_scheduler(optimizer, num_step, args.warmup_step)
 
     # Train
-    count = 0
     for epoch in range(args.epoch_num):
         print(f'Now in {epoch}th epoch')
         for data in tqdm(dataset):
@@ -57,11 +53,11 @@ def main():
             model.zero_grad()
 
             # Calc the loss
-            pred = model(data)
-            p_loss = utils.hinge_loss(p_pred, data.labels)
+            pred = model(data.formal[0])
+            loss = hinge_loss(pred, data.encoded)
 
             # Reprt the loss
-            wandb.log({"p_loss": p_loss, "a_loss": a_loss, "train_loss": loss})
+            wandb.log({"train_loss": loss})
 
             # Update param
             loss.backward()
@@ -69,25 +65,25 @@ def main():
             scheduler.step()
 
         # Eval dev loss
-        model.eval()
-        with torch.no_grad():
-            for data in tqdm(ETPC_dev):
+        # model.eval()
+        # with torch.no_grad():
+        #     for data in tqdm():
 
-                # Predict
-                p_pred, a_pred, attention = model(data)
-                p_pred = p_pred.squeeze(dim=1)
+        #         # Predict
+        #         p_pred, a_pred, attention = model(data)
+        #         p_pred = p_pred.squeeze(dim=1)
 
-                # Calc loss
-                a_golden = atomic.get(data.pair_id).to(device)
-                p_loss = utils.hinge_loss(p_pred, data.labels)
+        #         # Calc loss
+        #         a_golden = atomic.get(data.pair_id).to(device)
+        #         p_loss = utils.hinge_loss(p_pred, data.labels)
 
-                # Get pred
-                p_pred = utils.get_pred(p_pred)
+        #         # Get pred
+        #         p_pred = utils.get_pred(p_pred)
 
-                # Calc metrics
+        #         # Calc metrics
 
-        logged = {'p_acc': p_acc / dev_data_len, 'dev_loss': dev_loss}
-        wandb.log(logged)
+        # logged = {'p_acc': p_acc / dev_data_len, 'dev_loss': dev_loss}
+        # wandb.log(logged)
 
     return None
 

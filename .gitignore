@@ -4,3 +4,6 @@ data/*
 .vscode
 *.python-version
 *__pycache__
+src/master_thesis.egg-info
+src/trainer/wandb
+src/wandb
