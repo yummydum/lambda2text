@@ -1,4 +1,4 @@
-from transformers import AlbertModel, AlbertPreTrainedModel
+from transformers import AlbertModel
 from transformers.modeling_bert import ACT2FN
 import torch
 from torch import nn
@@ -18,10 +18,7 @@ class AlbertDecoder(nn.Module):
         self.decoder = nn.Linear(config.embedding_size, config.vocab_size)
         self.activation = ACT2FN[config.hidden_act]
 
-        # Need a link between the two variables so that the bias is correctly resized with `resize_token_embeddings`
-        self.decoder.bias = self.bias
-
-    def forward(self, hidden_states):  
+    def forward(self, hidden_states):
         import ipdb
         ipdb.set_trace()
 
@@ -33,9 +30,9 @@ class AlbertDecoder(nn.Module):
 
 
 class AlbertSeq2Seq(nn.Module):
-    def __init__(self, config1,config2):
+    def __init__(self, config1, config2):
         super().__init__()
-        # assert config1.hidd
+        # assert config1.hidd == ??
         self.encoder = AlbertModel(config1)  # formal representaion ->  hidden
         self.decoder = AlbertDecoder(config2)  # hidden -> natural language
 
