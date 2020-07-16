@@ -5,6 +5,10 @@ from torch import nn
 
 
 class AlbertDecoder(nn.Module):
+    """
+    Map hidden state to natural language
+    Refer to AlbertMLMHead 
+    """
     def __init__(self, config):
         super().__init__()
 
@@ -17,7 +21,10 @@ class AlbertDecoder(nn.Module):
         # Need a link between the two variables so that the bias is correctly resized with `resize_token_embeddings`
         self.decoder.bias = self.bias
 
-    def forward(self, hidden_states):
+    def forward(self, hidden_states):  
+        import ipdb
+        ipdb.set_trace()
+
         hidden_states = self.dense(hidden_states)
         hidden_states = self.activation(hidden_states)
         hidden_states = self.LayerNorm(hidden_states)
@@ -25,23 +32,15 @@ class AlbertDecoder(nn.Module):
         return prediction_score
 
 
-class AlbertSeq2Seq(AlbertPreTrainedModel):
-    def __init__(self, config):
-        super().__init__(config)
+class AlbertSeq2Seq(nn.Module):
+    def __init__(self, config1,config2):
+        super().__init__()
+        # assert config1.hidd
+        self.encoder = AlbertModel(config1)  # formal representaion ->  hidden
+        self.decoder = AlbertDecoder(config2)  # hidden -> natural language
 
-        self.encoder = AlbertModel(config)
-        self.decoder = AlbertDecoder(config)
-
-        self.init_weights()
-        self.tie_weights()
-
-    def tie_weights(self):
-        self._tie_or_clone_weights(self.decoder.decoder,
-                                   self.encoder.embeddings.word_embeddings)
-
-    def forward(self, input_ids=None, attention_mask=None):
-        outputs = self.encoder(input_ids=input_ids,
-                               attention_mask=attention_mask)
+    def forward(self, input_ids):
+        outputs = self.encoder(input_ids=input_ids)
         sequence_outputs = outputs[0]
         prediction_scores = self.decoder(sequence_outputs)
         return prediction_scores

@@ -9,7 +9,7 @@ import wandb
 
 from model.seq2seq import AlbertSeq2Seq
 from preprocess.dataset import read_pairs
-from trainer.utils import get_optimzer, get_scheduler, hinge_loss
+from trainer.utils import get_optimzer, get_scheduler, hinge_loss,to_onehot
 
 random.seed(42)
 torch.manual_seed(42)
@@ -24,11 +24,15 @@ else:
 
 def main():
 
+    vocab_size = 17229
+    albert_vocab_size = 30000
+
     args = set_args()
-    config = AlbertConfig(vocab_size=17229)
+    config1 = AlbertConfig(vocab_size=vocab_size)
+    config2 = AlbertConfig(vocab_size=albert_vocab_size)  # default vocab size for albert pretrain
 
     # Init model
-    model = AlbertSeq2Seq(config).to(device)
+    model = AlbertSeq2Seq(config1,config2).to(device)
 
     # set up wandb
     wandb.init(save_code=True)
@@ -53,10 +57,15 @@ def main():
             model.zero_grad()
 
             # Calc the loss
-            pred = model(data.formal[0])
-            loss = hinge_loss(pred, data.encoded)
+            pred = model(data.formal[0]).squeeze()
+            onehot_target = to_onehot(data.encoded[0],albert_vocab_size)
 
-            # Reprt the loss
+            import ipdb
+            ipdb.set_trace()
+
+            loss = hinge_loss(pred, onehot_target)
+
+            # Report the loss
             wandb.log({"train_loss": loss})
 
             # Update param
@@ -68,21 +77,8 @@ def main():
         # model.eval()
         # with torch.no_grad():
         #     for data in tqdm():
-
-        #         # Predict
-        #         p_pred, a_pred, attention = model(data)
-        #         p_pred = p_pred.squeeze(dim=1)
-
-        #         # Calc loss
-        #         a_golden = atomic.get(data.pair_id).to(device)
-        #         p_loss = utils.hinge_loss(p_pred, data.labels)
-
-        #         # Get pred
-        #         p_pred = utils.get_pred(p_pred)
-
-        #         # Calc metrics
-
-        # logged = {'p_acc': p_acc / dev_data_len, 'dev_loss': dev_loss}
+        #         calc here
+        # logged = {'dev_loss': dev_loss}
         # wandb.log(logged)
 
     return None

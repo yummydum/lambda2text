@@ -1,8 +1,9 @@
 from pathlib import Path
 import re
 from transformers import AlbertTokenizer
+from config import DATA_DIR
 
-data_path = Path('../data/formal')
+data_path = DATA_DIR / 'formal'
 TOKENIZER = AlbertTokenizer.from_pretrained('albert-base-v2')
 
 

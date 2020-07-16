@@ -2,8 +2,9 @@ from pathlib import Path
 from tqdm import tqdm
 from nlp import load_dataset
 import spacy
+from config import DATA_DIR
 
-data_path = Path('../data/glue')
+data_path = DATA_DIR / 'glue'
 nlp = spacy.load("en_core_web_sm")
 
 # 'qqp','qnli' skipped since question format necessary

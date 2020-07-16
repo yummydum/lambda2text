@@ -1,6 +1,5 @@
 from pathlib import Path
 import json
-from IPython.core.display import display, HTML, Javascript
 import os
 import pandas as pd
 import torch
@@ -108,4 +107,13 @@ def calc_recall(pred, target):
     for i in range(pred.size(1)):
         b = target[:, i] == 1
         result[i] = pred[:, i][b].sum()
+    return result
+
+def to_onehot(tens, dim):
+    b,r,c = tens.size()
+    result = torch.zeros(b, r, dim)
+    for i in range(b):
+        for j in range(r):
+            for k in range(c):
+                result[i][tens[i][j]] = 1
     return result
