@@ -4,7 +4,7 @@ from nlp import load_dataset
 import spacy
 from config import DATA_DIR
 
-data_path = DATA_DIR / 'glue'
+data_path = DATA_DIR / 'glue_split'
 nlp = spacy.load("en_core_web_sm")
 
 # 'qqp','qnli' skipped since question format necessary
@@ -36,9 +36,9 @@ for data in ['mrpc', 'mnli', 'rte', 'wnli']:
                     f.write(sent.text)
             f.write('\n')  # preserve original pair
         count += 1
-        if count // 10000 > 0:
+        if count > 0 and count % 50000 == 0:
             f.close()
-            result_path = data_path / f'{data}_{count // 10000}.txt'
+            result_path = data_path / f'{data}_{count // 50000}.txt'
             f = result_path.open(mode='w')
 
     f.close()

@@ -41,3 +41,6 @@ class AlbertSeq2Seq(nn.Module):
         sequence_outputs = outputs[0]
         prediction_scores = self.decoder(sequence_outputs)
         return prediction_scores
+
+    def decoder_mask():
+        return 
