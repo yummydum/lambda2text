@@ -1,7 +1,7 @@
 import pytest
 from model.seq2seq import TransformerSeq2Seq
 from preprocess.dataset import load_datasets, FORMAL, TEXT
-from utils import tokenize_formal, translate_sentence
+from utils import display_attention, tokenize_formal, translate_sentence
 
 
 @pytest.fixture
@@ -18,8 +18,8 @@ def dataset():
 def model():
     model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
                                output_dim=len(TEXT.vocab),
-                               hid_dim=14,
-                               n_heads=7,
+                               hid_dim=16,
+                               n_heads=1,
                                n_layers=2,
                                device='cpu')
     return model
@@ -29,4 +29,17 @@ def test_translate_sentence(dataset, model, formula):
     result, attention = translate_sentence(formula, FORMAL, TEXT, model, 'cpu')
     assert attention.size()[2] == len(result)
     assert attention.size()[3] == len(tokenize_formal(formula)) + 2
+    return
+
+
+@pytest.mark.skip
+def test_display_attention(dataset, model, formula):
+    translation, attention = translate_sentence(formula, FORMAL, TEXT, model,
+                                                'cpu')
+    display_attention(tokenize_formal(formula),
+                      translation,
+                      attention,
+                      n_heads=1,
+                      n_rows=1,
+                      n_cols=1)
     return

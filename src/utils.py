@@ -112,7 +112,7 @@ def display_attention(sentence,
 
         cax = ax.matshow(_attention, cmap='bone')
 
-        ax.tick_params(labelsize=12)
+        ax.tick_params(labelsize=4)
         ax.set_xticklabels([''] + ['<sos>'] + [t.lower()
                                                for t in sentence] + ['<eos>'],
                            rotation=45)
