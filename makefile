@@ -3,7 +3,9 @@ setup:
 	depccg_en download elmo
 
 ccg2lambda:
-	cat data/glue/${file} | depccg_en --model elmo --format ccg2lambda --annotator spacy --gpu ${gpu} > data/formal/${file}
+	# cat data/glue_split/${file} | depccg_en --format ccg2lambda --annotator spacy > data/formal_split/${file}
+	cat data/glue_split/${file} | depccg_en --model elmo --format ccg2lambda --annotator spacy --gpu ${gpu} > data/formal_split/${file}
+
 
 fit:	
 	dir = data/translation
