@@ -7,3 +7,4 @@ data/*
 src/master_thesis.egg-info
 src/trainer/wandb
 src/wandb
+*.pytest_cache

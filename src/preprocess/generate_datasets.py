@@ -4,7 +4,6 @@ from transformers import AlbertTokenizer
 from config import DATA_DIR
 
 data_path = DATA_DIR / 'formal'
-TOKENIZER = AlbertTokenizer.from_pretrained('albert-base-v2')
 
 
 def main():
@@ -16,7 +15,7 @@ def main():
         with source.open(mode='r') as f_r:
             with text_path.open(mode='r') as f_r2:
                 with result_path.open(mode='w') as f_w:
-                    f_w.write('formal\tencoded\n')
+                    f_w.write('formal\ttext\n')
                     for line in f_r:
                         if line.startswith('ID='):
                             continue
@@ -25,22 +24,8 @@ def main():
                             continue
 
                         text = next(f_r2)
-                        encoded = TOKENIZER.encode(text)
-                        encoded = ' '.join([str(i) for i in encoded])
-
-                        # add space for tokenization
-                        line = line.replace('(', ' ( ').replace(')', ' ) ')
-
-                        # normalize variable num
-                        for c in ['x', 'e', 'F', 'DOT']:
-                            variables = re.findall(f'{c}' + r'\d+', line)
-                            variables = sorted(list(set(variables)))
-                            for i, v in enumerate(variables):
-                                line = line.replace(v, f' {c}{i} ')
-
-                        # Tokenized
                         formal = ' '.join(line.split())
-                        f_w.write(f'{formal}\t{encoded}\n')
+                        f_w.write(f'{formal}\t{text}')
 
 
 if __name__ == "__main__":
