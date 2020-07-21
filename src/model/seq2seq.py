@@ -1,4 +1,5 @@
 import math
+from spacy.util import decaying
 import torch
 from torch import device
 import torch.nn as nn
@@ -14,20 +15,14 @@ class TransformerSeq2Seq(nn.Module):
             hid_dim,  # dim of word embed, encoder hid, decoder hid
             n_heads,
             n_layers,
+            device,
             pf_dim=1028,
-            dropout=0.5,
-            device=None):
+            dropout=0.5):
         super(TransformerSeq2Seq, self).__init__()
 
         # Settings
         self.pad_idx = 1
-        if device is None:
-            if torch.cuda.is_available():
-                self.device = torch.device('cuda')
-            else:
-                self.device = torch.device('cpu')
-        else:
-            self.device = device
+        self.device = device
 
         assert hid_dim % 2 == 0  # for positional encoder
 
@@ -36,16 +31,15 @@ class TransformerSeq2Seq(nn.Module):
                                           n_layers=n_layers,
                                           pf_dim=pf_dim,
                                           dropout=dropout,
-                                          n_heads=n_heads)
+                                          n_heads=n_heads,
+                                          device=device)
         self.decoder = TransformerDecoder(output_dim=output_dim,
                                           hid_dim=hid_dim,
                                           n_layers=n_layers,
                                           n_heads=n_heads,
                                           pf_dim=pf_dim,
-                                          dropout=dropout)
-
-        # Output layer
-        self.output = nn.Linear(1, 1)
+                                          dropout=dropout,
+                                          device=device)
 
     def make_src_mask(self, src):
         src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
@@ -72,25 +66,11 @@ class TransformerSeq2Seq(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
-    def __init__(self,
-                 input_dim,
-                 hid_dim,
-                 n_layers,
-                 n_heads,
-                 pf_dim,
-                 dropout,
-                 device=None):
+    def __init__(self, input_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,
+                 device):
         super().__init__()
 
         assert n_layers > 0
-
-        if device is None:
-            if torch.cuda.is_available():
-                self.device = torch.device('cuda')
-            else:
-                self.device = torch.device('cpu')
-        else:
-            self.device = device
 
         self.tok_embed = nn.Embedding(input_dim, hid_dim)
         self.pos_embed = PositionalEncoding(hid_dim, dropout)
@@ -143,25 +123,11 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self,
-                 output_dim,
-                 hid_dim,
-                 n_layers,
-                 n_heads,
-                 pf_dim,
-                 dropout,
-                 device=None):
+    def __init__(self, output_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,
+                 device):
         super().__init__()
 
         assert n_layers > 0
-
-        if device is None:
-            if torch.cuda.is_available():
-                self.device = torch.device('cuda')
-            else:
-                self.device = torch.device('cpu')
-        else:
-            self.device = device
 
         self.tok_embed = nn.Embedding(output_dim, hid_dim)
         self.pos_embed = PositionalEncoding(hid_dim, dropout)

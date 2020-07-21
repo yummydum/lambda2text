@@ -1,6 +1,7 @@
 import argparse
 import sys
 import random
+import logging
 
 import numpy as np
 from tqdm import tqdm
@@ -18,9 +19,10 @@ np.random.seed(42)
 torch.cuda.manual_seed(42)
 
 if torch.cuda.is_available():
-    device = torch.device('cuda')
+    DEVICE = torch.device('cuda')
 else:
-    device = torch.device('cpu')
+    DEVICE = torch.device('cpu')
+logging.info(f'Run on device: {DEVICE}')
 
 
 def initialize_weights(m):
@@ -110,20 +112,24 @@ def evaluate(args, model, dataset):
 
 
 def init_model(args):
-    # Init model
     if args.test_run:
         # Small model for fast test
         model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
                                    output_dim=len(TEXT.vocab),
                                    hid_dim=14,
                                    n_heads=7,
-                                   n_layers=2)
+                                   n_layers=2,
+                                   device=DEVICE)
     else:
         model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
                                    output_dim=len(TEXT.vocab),
                                    hid_dim=args.hid_dim,
                                    n_heads=args.n_heads,
-                                   n_layers=args.n_layers)
+                                   n_layers=args.n_layers,
+                                   device=DEVICE)
+
+    # Send to device
+    model = model.to(DEVICE)
 
     # Init weight
     model.apply(initialize_weights)
@@ -134,8 +140,10 @@ def init_model(args):
 def main():
     args = set_args()
 
-    # Load datasets and model
-    train_data, dev_data, test_data = load_datasets(args.batch_size, device)
+    logging.info('Now loading datasets...')
+    train_data, dev_data, test_data = load_datasets(args.batch_size, DEVICE)
+
+    logging.info(f'Now initializing model with args {args}')
     model = init_model(args)
 
     # set up wandb in production mode
@@ -152,6 +160,7 @@ def main():
     args.optimizer = get_optimzer(model, args.lr, args.decay)
 
     # Loop over epochs
+    logging.info('Start training!')
     for epoch in range(args.epoch_num):
         print(f'Now in {epoch}th epoch')
         train_loss = train(args, model, train_data)

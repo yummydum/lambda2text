@@ -2,7 +2,6 @@ import random
 import numpy as np
 import pytest
 import torch
-from torchtext.data import batch
 from model.seq2seq import TransformerSeq2Seq, TransformerEncoder, TransformerDecoder
 from preprocess.dataset import load_datasets, FORMAL, TEXT
 
@@ -19,7 +18,7 @@ HID_DIM = 14
 
 @pytest.fixture(scope='module')
 def data():
-    data = load_dataset(5, 'cpu')
+    data = load_datasets(5, 'cpu')
     return data
 
 
@@ -30,7 +29,8 @@ def encoder():
                                n_layers=2,
                                n_heads=N_HEADS,
                                pf_dim=10,
-                               dropout=0.5)
+                               dropout=0.5,
+                               device='cpu')
     return model
 
 
@@ -41,7 +41,8 @@ def decoder():
                                n_layers=2,
                                n_heads=N_HEADS,
                                pf_dim=10,
-                               dropout=0.5)
+                               dropout=0.5,
+                               device='cpu')
     return model
 
 
@@ -51,7 +52,8 @@ def seq2seq():
                                output_dim=OUTPUT_DIM,
                                hid_dim=14,
                                n_heads=7,
-                               n_layers=2)
+                               n_layers=2,
+                               device='cpu')
     return model
 
 
