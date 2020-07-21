@@ -18,10 +18,14 @@ torch.manual_seed(42)
 np.random.seed(42)
 torch.cuda.manual_seed(42)
 
+# Set device
 if torch.cuda.is_available():
     DEVICE = torch.device('cuda')
 else:
     DEVICE = torch.device('cpu')
+
+# Set logger
+logging.basicConfig(level=logging.DEBUG)
 logging.info(f'Run on device: {DEVICE}')
 
 
