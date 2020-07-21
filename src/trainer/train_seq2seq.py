@@ -169,7 +169,6 @@ def set_args():
     parser.add_argument('--lr', default=1e-3, type=float)
     parser.add_argument('--n_heads', default=8, type=int)
     parser.add_argument('--n_layers', default=3, type=int)
-    parser.add_argument('--lr', default=1e-3, type=float)
     parser.add_argument('--batch_size', default=8, type=int)
     parser.add_argument('--epoch_num', default=10, type=int)
     parser.add_argument('--decay', default=0.0, type=float)
