@@ -1,23 +1,8 @@
-import re
 from torchtext import data
-from config import DATA_DIR
 from torchtext.data.utils import get_tokenizer
 
-
-def tokenize_formal(line):
-    # add space for tokenization
-    line = line.replace('(', ' ( ').replace(')', ' ) ')
-
-    # normalize variable num
-    for c in ['x', 'e', 'F', 'DOT']:
-        variables = re.findall(f'{c}' + r'\d+', line)
-        variables = sorted(list(set(variables)))
-        for i, v in enumerate(variables):
-            line = line.replace(v, f' {c}{i} ')
-
-    # cut redundant space
-    return line.split()
-
+from config import DATA_DIR
+from utils import tokenize_formal
 
 FORMAL = data.Field(sequential=True,
                     include_lengths=True,

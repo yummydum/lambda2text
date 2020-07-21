@@ -42,6 +42,8 @@ def test_fields(data):
     assert TEXT.vocab.itos[2] == '<sos>'
     assert TEXT.vocab.itos[3] == '<eos>'
 
+    assert 'x043135' not in TEXT.vocab.stoi
+
     return
 
 

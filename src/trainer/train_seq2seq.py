@@ -8,10 +8,11 @@ from tqdm import tqdm
 import torch
 import wandb
 from torch import nn
+from config import DATA_DIR
 
 from model.seq2seq import TransformerSeq2Seq
 from preprocess.dataset import load_datasets, TEXT, FORMAL
-from trainer.utils import get_optimzer
+from utils import get_optimzer
 
 random.seed(42)
 torch.manual_seed(42)
@@ -172,6 +173,10 @@ def main():
         if args.test_run:
             print("Test succeed for main, exit.")
             sys.exit(0)
+
+    logging.info('Finish train, save model...')
+    result_path = DATA_DIR / 'translation' / f'{wandb.run.id}.pt'
+    torch.save(model.state_dict(), str(result_path))
     return None
 
 

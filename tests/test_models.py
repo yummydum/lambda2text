@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 import torch
 from model.seq2seq import TransformerSeq2Seq, TransformerEncoder, TransformerDecoder
-from preprocess.dataset import load_datasets, FORMAL, TEXT
+from preprocess.dataset import load_datasets
 
 random.seed(42)
 torch.manual_seed(42)
