@@ -109,26 +109,34 @@ def evaluate(args, model, dataset):
     return epoch_loss / len(dataset)
 
 
-def main():
-    args = set_args()
-
-    # Load datasets
-    train_data, dev_data, test_data = load_datasets(args.batch_size, device)
-
+def init_model(args):
     # Init model
     if args.test_run:
-        # Test model
+        # Small model for fast test
         model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
                                    output_dim=len(TEXT.vocab),
                                    hid_dim=14,
                                    n_heads=7,
                                    n_layers=2)
     else:
-        raise NotImplementedError()
-        model = ''
+        model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
+                                   output_dim=len(TEXT.vocab),
+                                   hid_dim=args.hid_dim,
+                                   n_heads=args.n_heads,
+                                   n_layers=args.n_layers)
 
     # Init weight
     model.apply(initialize_weights)
+
+    return model
+
+
+def main():
+    args = set_args()
+
+    # Load datasets and model
+    train_data, dev_data, test_data = load_datasets(args.batch_size, device)
+    model = init_model(args)
 
     # set up wandb in production mode
     if not args.test_run:
@@ -158,6 +166,9 @@ def set_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--hid_dim', default=128, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
+    parser.add_argument('--lr', default=1e-3, type=float)
+    parser.add_argument('--n_heads', default=8, type=int)
+    parser.add_argument('--n_layers', default=3, type=int)
     parser.add_argument('--lr', default=1e-3, type=float)
     parser.add_argument('--batch_size', default=8, type=int)
     parser.add_argument('--epoch_num', default=10, type=int)
