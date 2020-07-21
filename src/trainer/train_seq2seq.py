@@ -26,8 +26,9 @@ else:
 
 # Set logger
 logging.basicConfig(level=logging.DEBUG)
-logging.info(f'Run on device: {DEVICE}')
-
+logging.info(f'Run on device: {DEVICE}:{torch.cuda.current_device()}')
+TRAIN_STEP = 0
+DEV_STEP = 0
 
 def initialize_weights(m):
     if hasattr(m, 'weight') and m.weight.dim() > 1:
@@ -101,16 +102,16 @@ def evaluate(args, model, dataset):
 
             loss = forward(model, data, args.criterion)
 
-            # Report the loss
-            if not args.test_run:
-                wandb.log({"eval_loss": loss})
-
             epoch_loss += loss.item()
 
             # Just try one loop for test mode
             if args.test_run:
                 print("Test succeed for eval loop, return.")
                 return epoch_loss / 1
+
+    # Report the loss
+    if not args.test_run:
+        wandb.log({"eval_loss": epoch_loss / len(dataset)})
 
     return epoch_loss / len(dataset)
 
@@ -178,11 +179,11 @@ def main():
 def set_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--hid_dim', default=128, type=int)
-    parser.add_argument('--dropout', default=0.1, type=float)
+    parser.add_argument('--dropout', default=0.5, type=float)
     parser.add_argument('--lr', default=1e-3, type=float)
-    parser.add_argument('--n_heads', default=8, type=int)
-    parser.add_argument('--n_layers', default=3, type=int)
-    parser.add_argument('--batch_size', default=8, type=int)
+    parser.add_argument('--n_heads', default=4, type=int)
+    parser.add_argument('--n_layers', default=2, type=int)
+    parser.add_argument('--batch_size', default=4, type=int)
     parser.add_argument('--epoch_num', default=10, type=int)
     parser.add_argument('--decay', default=0.0, type=float)
     parser.add_argument('--test_run', action='store_true')
