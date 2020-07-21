@@ -38,13 +38,14 @@ def forward(model, data, criterion):
     # Replace eos to pad to cut off the eos token
     trg_input = trg.clone()
     trg_input[trg_input == 2] = 1
+    trg_input = trg_input[:, :-1]  # adjust length
 
     output, _ = model(src, trg_input)
 
     # Flatten
     output_dim = output.shape[-1]  # Number of target tokens
     output = output.contiguous().view(-1, output_dim)
-    trg_output = trg.contiguous().view(-1)
+    trg_output = trg[:, 1:].contiguous().view(-1)
 
     #output = [batch size * (trg len - 1), output dim]
     #trg = [batch size * (trg len - 1)]

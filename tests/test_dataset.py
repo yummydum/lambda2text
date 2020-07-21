@@ -10,6 +10,8 @@ def data():
 
 def test_splits(data):
     train, dev, test = data
+
+    # Number of batches
     assert (len(dev) * 8) - 10 <= len(train)
     assert len(train) <= len(dev) * 8
     assert len(dev) == len(test)
