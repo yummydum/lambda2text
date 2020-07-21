@@ -4,7 +4,7 @@ import pytest
 import torch
 from torchtext.data import batch
 from model.seq2seq import TransformerSeq2Seq, TransformerEncoder, TransformerDecoder
-from preprocess.dataset import read_pairs, FORMAL, TEXT
+from preprocess.dataset import load_datasets, FORMAL, TEXT
 
 random.seed(42)
 torch.manual_seed(42)
@@ -19,7 +19,7 @@ HID_DIM = 14
 
 @pytest.fixture(scope='module')
 def data():
-    data = read_pairs(5, 'cpu')
+    data = load_dataset(5, 'cpu')
     return data
 
 
