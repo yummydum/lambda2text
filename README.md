@@ -1,6 +1,6 @@
-# master_thesis
+# lambda2text
 
-Translate logical formula to natural language.
+Translate lambda expressions to natural language.
 
 # Overview
 
@@ -19,3 +19,6 @@ Amrozi accused his brother , whom he called " the witness " , of deliberately di
 Currently a simple transformer based seq2seq is implemented (see `src/model/seq2seq.py`).
 Training is handeled by `src/trainer/train_seq2seq.py`.
 
+TODO: 
+- Execute ccg2lambda at scale
+- Implement encoders which takes tree structure in the logical formula in account
