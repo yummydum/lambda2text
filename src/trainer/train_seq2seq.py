@@ -175,7 +175,7 @@ def main():
             sys.exit(0)
 
     logging.info('Finish train, save model...')
-    result_path = DATA_DIR / 'translation' / f'{wandb.run.id}.pt'
+    result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}.pt'
     torch.save(model.state_dict(), str(result_path))
     return None
 

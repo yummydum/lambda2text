@@ -33,7 +33,7 @@ def get_optimzer(model, lr, decay=0.0):
 
 def tokenize_formal(line):
 
-    # TODO: currently has issue for COMMA
+    # TODO: currently has issue for COMMA and DOT
 
     # add space for tokenization
     line = line.replace('(', ' ( ').replace(')', ' ) ')
