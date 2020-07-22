@@ -20,6 +20,7 @@ Currently a simple transformer based seq2seq is implemented (see `src/model/seq2
 Training is handeled by `src/trainer/train_seq2seq.py`.
 
 TODO: 
+- Apply byte-pair encoding
 - Execute ccg2lambda at scale
 - Implement encoders which takes tree structure in the logical formula in account
 
