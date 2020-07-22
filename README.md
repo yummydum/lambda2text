@@ -22,3 +22,7 @@ Training is handeled by `src/trainer/train_seq2seq.py`.
 TODO: 
 - Execute ccg2lambda at scale
 - Implement encoders which takes tree structure in the logical formula in account
+
+
+REFERENCE:
+- https://github.com/Amazing-J/structural-transformer
