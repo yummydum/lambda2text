@@ -46,7 +46,11 @@ def tokenize_formal(line):
             line = line.replace(v, f' {c}{i} ')
 
     # cut redundant space
-    return line.split()
+    line = line.split()
+
+    # remove heading underscore
+    line = [x.lstrip('_') for x in line]
+    return line
 
 
 def translate_sentence(formula,

@@ -25,6 +25,12 @@ def model():
     return model
 
 
+def test_tokenize_formal(formula):
+    result = tokenize_formal(formula)
+    sample = ' '.join(result[:20])
+    assert sample == '( exists x0 . ( patient ( x0 ) & female ( x0 ) & 2 ( x0 ) &'
+
+
 def test_translate_sentence(dataset, model, formula):
     result, attention = translate_sentence(formula, FORMAL, TEXT, model, 'cpu')
     assert attention.size()[2] == len(result)
