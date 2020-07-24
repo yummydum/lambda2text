@@ -25,27 +25,25 @@ def model():
     return model
 
 
-def test_tokenize_formal(formula):
-    result = tokenize_formal(formula)
-    sample = ' '.join(result[:20])
-    assert sample == '( exists x0 . ( patient ( x0 ) & female ( x0 ) & 2 ( x0 ) &'
+# def test_tokenize_formal(formula):
+#     result = tokenize_formal(formula)
+#     sample = ' '.join(result[:20])
+#     assert sample == '( exists x0 . ( patient ( x0 ) & female ( x0 ) & 2 ( x0 ) &'
 
+# def test_translate_sentence(dataset, model, formula):
+#     result, attention = translate_sentence(formula, FORMAL, TEXT, model, 'cpu')
+#     assert attention.size()[2] == len(result)
+#     assert attention.size()[3] == len(tokenize_formal(formula)) + 2
+#     return
 
-def test_translate_sentence(dataset, model, formula):
-    result, attention = translate_sentence(formula, FORMAL, TEXT, model, 'cpu')
-    assert attention.size()[2] == len(result)
-    assert attention.size()[3] == len(tokenize_formal(formula)) + 2
-    return
-
-
-@pytest.mark.skip
-def test_display_attention(dataset, model, formula):
-    translation, attention = translate_sentence(formula, FORMAL, TEXT, model,
-                                                'cpu')
-    display_attention(tokenize_formal(formula),
-                      translation,
-                      attention,
-                      n_heads=1,
-                      n_rows=1,
-                      n_cols=1)
-    return
+# @pytest.mark.skip
+# def test_display_attention(dataset, model, formula):
+#     translation, attention = translate_sentence(formula, FORMAL, TEXT, model,
+#                                                 'cpu')
+#     display_attention(tokenize_formal(formula),
+#                       translation,
+#                       attention,
+#                       n_heads=1,
+#                       n_rows=1,
+#                       n_cols=1)
+#     return

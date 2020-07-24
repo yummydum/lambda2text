@@ -1,4 +1,4 @@
-import re
+from sacremoses import tokenize
 
 import torch
 import matplotlib.pyplot as plt
@@ -32,25 +32,10 @@ def get_optimzer(model, lr, decay=0.0):
 
 
 def tokenize_formal(line):
-
-    # TODO: currently has issue for COMMA and DOT
-
-    # add space for tokenization
-    line = line.replace('(', ' ( ').replace(')', ' ) ')
-
-    # normalize variable num
-    for c in ['x', 'e', 'F', 'DOT', 'z']:
-        variables = re.findall(f'{c}' + r'\d+', line)
-        variables = sorted(list(set(variables)))
-        for i, v in enumerate(variables):
-            line = line.replace(v, f' {c}{i} ')
-
-    # cut redundant space
-    line = line.split()
-
-    # remove heading underscore
-    line = [x.lstrip('_') for x in line]
-    return line
+    """
+    Tokenize by BPE
+    """
+    return line.split(' ')
 
 
 def translate_sentence(formula,

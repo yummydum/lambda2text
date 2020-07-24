@@ -1,35 +1,51 @@
+import os
+import signal
+import time
 import logging
 import subprocess
 from tqdm import tqdm
-from config import DATA_DIR
+from config import DATA_DIR, ROOT_DIR
+
+# Run make from root dir
+os.chdir(ROOT_DIR)
 
 logging.basicConfig(level=logging.DEBUG)
 
-glue_split = DATA_DIR / 'glue_split'
+mnli_split = DATA_DIR / 'mnli_split'
 formal_spilt = DATA_DIR / 'formal_split'
 
-mrpc_num = 4
-mnli_num = 370
-rte_num = 4
-wnli_num = 5
+job_num = 4
 
-process_list = []
-for i in tqdm(range(mnli_num + 1)):
-    fn = formal_spilt / f'mnli_{i}.txt'
 
-    # May skip if the result is already present
-    if fn.exists():
-        content = fn.read_text().split('\n')
-        if len(content) > 100:
-            continue
-        else:
-            pass
+def main():
+    process_list = []
+    try:
+        for f_path in tqdm(sorted(mnli_split.iterdir())):
 
-    logging.info(f'Now running {fn}')
-    # cmd = ['make', 'ccg2lambda', f'file={fn.name}']
-    cmd = ['make', 'ccg2lambda', f'file={fn.name}', 'gpu=0']
-    process_list.append(subprocess.Popen(cmd, stdout=subprocess.PIPE))
+            # May skip if the result is already present
+            result_path = formal_spilt / f_path.name
+            if result_path.exists():
+                lines = result_path.read_text().split('\n')
+                if len(lines) == 1001:
+                    continue
 
-    if len(process_list) > 3:
+            logging.info(f'Now running {f_path}')
+            cmd = ['make', 'ccg2lambda', f'file={f_path.name}']
+            # cmd = ['make', 'ccg2lambda', f'file={f_path.name}', 'gpu={len(process_list)}']
+            process_list.append(subprocess.Popen(cmd, stdout=subprocess.PIPE))
+
+            # Wait until all process finished
+            while len(process_list) == job_num:
+                for p in process_list:
+                    if p.poll() is not None:
+                        process_list.remove(p)
+                time.sleep(10)
+    except KeyboardInterrupt:
+        print('Now killing process... wait')
         for p in process_list:
-            p.wait()
+            p.send_signal(signal.SIGINT)
+    return None
+
+
+if __name__ == "__main__":
+    main()
