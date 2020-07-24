@@ -3,7 +3,7 @@ from pathlib import Path
 from spacy import load
 import torch
 from preprocess.dataset import load_datasets, TEXT, FORMAL
-from utils import tokenize_formal, translate_sentence
+from utils import translate_sentence
 from config import DATA_DIR
 
 model_dir = DATA_DIR / 'trained_model'

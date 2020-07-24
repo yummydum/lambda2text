@@ -1,10 +1,15 @@
-from sacremoses import tokenize
-
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
+from tokenizers import SentencePieceBPETokenizer
 from transformers.optimization import AdamW
+
+from config import DATA_DIR
+
+tokenizer_dir = DATA_DIR / 'tokenizers/SentencePiece'
+TOKENIZER = SentencePieceBPETokenizer(str(tokenizer_dir / 'vocab.json'),
+                                      str(tokenizer_dir / 'merges.txt'))
 
 
 def get_optimzer(model, lr, decay=0.0):
@@ -35,7 +40,8 @@ def tokenize_formal(line):
     """
     Tokenize by BPE
     """
-    return line.split(' ')
+    result = TOKENIZER.encode(line).tokens
+    return ''.join(result).split('▁')
 
 
 def translate_sentence(formula,
