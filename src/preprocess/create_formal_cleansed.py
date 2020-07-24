@@ -19,30 +19,26 @@ def normalize(line):
         for i, v in enumerate(variables):
             line = line.replace(v, f' {c}{i} ')
 
-    # cut redundant space
-    line = line.split()
-
     # remove heading underscore
-    line = [x.lstrip('_') for x in line]
-    return line
+    line = [x.lstrip('_') for x in line.split()]
+
+    return ' '.join(line)
 
 
 def main():
+    result_path = DATA_DIR / 'pairs/mnli.tsv'
     formal_split = DATA_DIR / 'formal_split'
-    for source in formal_split.iterdir():
 
-        text_path = DATA_DIR / 'mnli' / source.name
-        result_path = DATA_DIR / 'formal_cleansed/mnli.tsv'
+    # Init result file
+    with result_path.open(mode='w') as f_w:
+        writer = csv.writer(f_w, lineterminator='\n', delimiter='\t')
+        writer.writerow(['formal', 'text'])
 
-        with source.open(mode='r') as f_r:
-            with text_path.open(mode='r') as f_r2:
-                with result_path.open(mode='w') as f_w:
-
-                    writer = csv.writer(f_w,
-                                        lineterminator='\n',
-                                        delimiter='\t')
-                    writer.writerow(['formal', 'text'])
-
+        # Aggregate split file to result file
+        for source in formal_split.iterdir():
+            text_path = DATA_DIR / 'mnli_split' / source.name
+            with source.open(mode='r') as f_r:
+                with text_path.open(mode='r') as f_r2:
                     for line in f_r:
 
                         # Skip unneccesary lines
@@ -54,6 +50,7 @@ def main():
 
                         # preprocess & write
                         text = next(f_r2)
+                        text = text.replace('\n', '')
                         formal = normalize(line)
                         assert '\t' not in formal
                         assert '\t' not in text
