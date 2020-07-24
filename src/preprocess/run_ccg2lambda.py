@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG)
 mnli_split = DATA_DIR / 'mnli_split'
 formal_spilt = DATA_DIR / 'formal_split'
 
-job_num = 4
+job_num = 6
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
 
             logging.info(f'Now running {f_path}')
             cmd = ['make', 'ccg2lambda', f'file={f_path.name}']
-            # cmd = ['make', 'ccg2lambda', f'file={f_path.name}', 'gpu={len(process_list)}']
+            # cmd = ['make', 'ccg2lambda', f'file={f_path.name}', f'gpu={len(process_list)}']
             process_list.append(subprocess.Popen(cmd, stdout=subprocess.PIPE))
 
             # Wait until all process finished

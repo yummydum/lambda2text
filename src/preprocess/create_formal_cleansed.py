@@ -31,7 +31,7 @@ def main():
     formal_split = DATA_DIR / 'formal_split'
     for source in formal_split.iterdir():
 
-        text_path = DATA_DIR / 'mnli' / source.name
+        text_path = DATA_DIR / 'mnli_split' / source.name
         result_path = DATA_DIR / 'formal_cleansed/mnli.tsv'
 
         with source.open(mode='r') as f_r:
