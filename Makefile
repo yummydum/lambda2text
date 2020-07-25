@@ -4,7 +4,7 @@ setup:
 
 ccg2lambda:
 	# cat data/mnli_split/${file} | depccg_en --format ccg2lambda --annotator spacy > data/formal_split/${file}
-	cat data/mnli_split/${file} | depccg_en --model elmo --format ccg2lambda --annotator spacy --gpu ${gpu} > data/formal_split/${file}
+	cat data/mnli_split/${file} | depccg_en --model elmo --format ccg2lambda --annotator spacy  > data/formal_split/${file}
 
 
 fit:	
@@ -14,3 +14,4 @@ fit:
 
 tranlate:
 	onmt_translate -model demo-model_step_100000.pt -src data/translation/src-val.txt -output pred.txt -replace_unk -verbose
+

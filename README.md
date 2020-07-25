@@ -18,7 +18,6 @@ Amrozi accused his brother , whom he called " the witness " , of deliberately di
 
 # TODO:
 
-- Execute ccg2lambda at scale
 - Implement encoders which takes tree structure in the logical formula in account
 
 # Preprocess
@@ -31,7 +30,15 @@ Amrozi accused his brother , whom he called " the witness " , of deliberately di
 
 # Model
 
+- Transformer based seq2seq (baseline)
+
 # Train
+
+```
+cd src
+make sweep
+make run gpu=0,1 id=<sweep_id>
+```
 
 # Reference
 

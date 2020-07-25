@@ -1,4 +1,4 @@
-program: src/trainer/train_seq2seq.py  
+program: trainer/train_seq2seq.py  
 method: bayes
 metric:
   name: eval_loss
@@ -7,3 +7,17 @@ parameters:
   lr:
     min: 0.000001
     max: 0.001
+  hid_dim:
+    values: [64,128,256,512]
+  batch_size:
+    values: [4,8,16]
+  n_heads:
+    values: [4,8,16]
+  n_layers:
+    values: [1,2,3]
+  decay:
+    min: 0.0
+    max: 0.5
+  dropout:
+    min: 0.0
+    max: 0.8

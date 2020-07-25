@@ -18,7 +18,7 @@ HID_DIM = 14
 
 @pytest.fixture(scope='module')
 def data():
-    data = load_datasets(5, 'cpu')
+    data = load_datasets(5, 'cpu',test_mode=True)
     return data
 
 
@@ -53,6 +53,7 @@ def seq2seq():
                                hid_dim=14,
                                n_heads=7,
                                n_layers=2,
+                               dropout=0.5,
                                device='cpu')
     return model
 

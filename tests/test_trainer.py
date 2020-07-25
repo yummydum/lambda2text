@@ -1,18 +1,20 @@
 from types import SimpleNamespace
-import subprocess
-from trainer.train_seq2seq import init_model
+import pytest
+import trainer.train_seq2seq as target
 from preprocess.dataset import load_datasets
 
 
-def test_init_model():
-    load_datasets(5, 'CPU')  # Need to run vocab.build
-    args = SimpleNamespace(test_run=False, hid_dim=100, n_heads=2, n_layers=3)
-    init_model(args)
+@pytest.fixture
+def mock_arg():
+    return SimpleNamespace(test_run=False, hid_dim=10, n_heads=2, n_layers=3,dropout=0.1)
+
+
+def test_init_model(mock_arg):
+    load_datasets(5, 'CPU',test_mode=True)  # Need to run vocab.build
+    target.init_model(mock_arg)
     return
 
 
-def test_run():
-    result = subprocess.run(
-        ['python', '../src/trainer/train_seq2seq.py', '--test_run'])
-    assert result.returncode == 0
-    return
+def test_main(mock_arg, monkeypatch):
+    monkeypatch.setattr("sys.argv", ["train_seq2seq.py", "--test_run"])
+    assert target.main() == 0

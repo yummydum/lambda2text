@@ -1,15 +1,15 @@
+import joblib
 import torch
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+# import matplotlib.pyplot as plt
+# import matplotlib.ticker as ticker
 
 from tokenizers import SentencePieceBPETokenizer
 from transformers.optimization import AdamW
 
 from config import DATA_DIR
 
-tokenizer_dir = DATA_DIR / 'tokenizers/SentencePiece'
-TOKENIZER = SentencePieceBPETokenizer(str(tokenizer_dir / 'vocab.json'),
-                                      str(tokenizer_dir / 'merges.txt'))
+FORMAL_TOKENIZER = joblib.load(DATA_DIR / 'tokenizers/tokenizer_formal.joblib')
+TEXT_TOKENIZER = joblib.load(DATA_DIR / 'tokenizers/tokenizer_text.joblib')
 
 
 def get_optimzer(model, lr, decay=0.0):
@@ -37,11 +37,13 @@ def get_optimzer(model, lr, decay=0.0):
 
 
 def tokenize_formal(line):
-    """
-    Tokenize by BPE
-    """
-    result = TOKENIZER.encode(line).tokens
-    return ''.join(result).split('▁')
+    result = FORMAL_TOKENIZER.encode(line).tokens
+    return result
+
+
+def tokenize_text(line):
+    result = TEXT_TOKENIZER.encode(line).tokens
+    return result
 
 
 def translate_sentence(formula,

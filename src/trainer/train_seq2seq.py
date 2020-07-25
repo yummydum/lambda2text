@@ -27,7 +27,6 @@ else:
 
 # Set logger
 logging.basicConfig(level=logging.DEBUG)
-logging.info(f'Run on device: {DEVICE}')
 
 
 def initialize_weights(m):
@@ -124,16 +123,23 @@ def init_model(args):
                                    hid_dim=14,
                                    n_heads=7,
                                    n_layers=2,
-                                   device=DEVICE)
+                                   dropout=0.1,
+                                   device=DEVICE.type)
     else:
         model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
                                    output_dim=len(TEXT.vocab),
                                    hid_dim=args.hid_dim,
                                    n_heads=args.n_heads,
                                    n_layers=args.n_layers,
-                                   device=DEVICE)
+                                   dropout=args.dropout,
+                                   device=DEVICE.type)
 
-    # Send to device
+    # Handle GPU
+    gpu_num = torch.cuda.device_count()
+    logging.info(f'Available gpu num: {gpu_num}')
+    if torch.cuda.is_available() and gpu_num > 1 and not args.test_run:
+        logging.info(f'Use {gpu_num} GPU')
+        model = torch.nn.DataParallel(model)
     model = model.to(DEVICE)
 
     # Init weight
@@ -146,7 +152,7 @@ def main():
     args = set_args()
 
     logging.info('Now loading datasets...')
-    train_data, dev_data, test_data = load_datasets(args.batch_size, DEVICE)
+    train_data, dev_data, test_data = load_datasets(args.batch_size, DEVICE, test_mode=args.test_run)
 
     logging.info(f'Now initializing model with args {args}')
     model = init_model(args)
@@ -172,7 +178,7 @@ def main():
         valid_loss = evaluate(args, model, dev_data)
         if args.test_run:
             print("Test succeed for main, exit.")
-            sys.exit(0)
+            return 0
 
     logging.info('Finish train, save model...')
     result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}.pt'
@@ -185,9 +191,9 @@ def set_args():
     parser.add_argument('--hid_dim', default=128, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--lr', default=1e-3, type=float)
-    parser.add_argument('--n_heads', default=8, type=int)
-    parser.add_argument('--n_layers', default=3, type=int)
-    parser.add_argument('--batch_size', default=8, type=int)
+    parser.add_argument('--n_heads', default=4, type=int)
+    parser.add_argument('--n_layers', default=2, type=int)
+    parser.add_argument('--batch_size', default=4, type=int)
     parser.add_argument('--epoch_num', default=10, type=int)
     parser.add_argument('--decay', default=0.0, type=float)
     parser.add_argument('--test_run', action='store_true')

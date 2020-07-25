@@ -77,3 +77,8 @@ def test_padding(data):
         assert (text[i][length:] == 1).all().item()
 
     return
+
+def test_vocab_num():
+    assert len(FORMAL.vocab) <= 20000  # small freq filtered, thus less than 20000
+    assert len(TEXT.vocab) <= 20000
+    return 

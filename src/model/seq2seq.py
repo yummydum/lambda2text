@@ -1,7 +1,6 @@
 import math
 from spacy.util import decaying
 import torch
-from torch import device
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
@@ -15,9 +14,9 @@ class TransformerSeq2Seq(nn.Module):
             hid_dim,  # dim of word embed, encoder hid, decoder hid
             n_heads,
             n_layers,
+            dropout,
             device,
-            pf_dim=1028,
-            dropout=0.5):
+            pf_dim=1028):
         super(TransformerSeq2Seq, self).__init__()
 
         # Settings
@@ -32,14 +31,14 @@ class TransformerSeq2Seq(nn.Module):
                                           pf_dim=pf_dim,
                                           dropout=dropout,
                                           n_heads=n_heads,
-                                          device=device)
+                                          device=self.device)
         self.decoder = TransformerDecoder(output_dim=output_dim,
                                           hid_dim=hid_dim,
                                           n_layers=n_layers,
                                           n_heads=n_heads,
                                           pf_dim=pf_dim,
                                           dropout=dropout,
-                                          device=device)
+                                          device=self.device)
 
     def make_src_mask(self, src):
         src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
@@ -48,7 +47,9 @@ class TransformerSeq2Seq(nn.Module):
     def make_trg_mask(self, trg):
         trg_pad_mask = (trg != self.pad_idx).unsqueeze(1).unsqueeze(2)
         trg_len = trg.shape[1]
-        ones = torch.ones((trg_len, trg_len), device=self.device)
+        ones = torch.ones((trg_len, trg_len))
+        if self.device == 'cuda':
+            ones = ones.cuda()
         trg_sub_mask = torch.tril(ones).bool()
         trg_mask = trg_pad_mask & trg_sub_mask
         return trg_mask
@@ -66,25 +67,33 @@ class TransformerSeq2Seq(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
-    def __init__(self, input_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,
-                 device):
+    def __init__(self, input_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,device
+                 ):
         super().__init__()
 
         assert n_layers > 0
 
+        self.hid_dim = hid_dim
         self.tok_embed = nn.Embedding(input_dim, hid_dim)
         self.pos_embed = PositionalEncoding(hid_dim, dropout)
 
         self.layers = nn.ModuleList([
-            TransformerEncoderLayer(hid_dim, n_heads, pf_dim, dropout, device)
+            TransformerEncoderLayer(hid_dim, n_heads, pf_dim, dropout,device)
             for _ in range(n_layers)
         ])
 
         self.dropout = nn.Dropout(dropout)
-        self.scale = torch.sqrt(torch.FloatTensor([hid_dim])).to(device)
+        self.device = device
+
+    def get_scale(self):
+        scale = torch.sqrt(torch.FloatTensor([self.hid_dim]))
+        if self.device == 'cuda':
+            scale = scale.cuda()
+        return scale
 
     def forward(self, src, src_mask):
-        x = self.tok_embed(src) * self.scale
+        scale = self.get_scale()
+        x = self.tok_embed(src) * scale
         x = self.pos_embed(x)
         for layer in self.layers:
             x = layer(x, src_mask)
@@ -92,13 +101,13 @@ class TransformerEncoder(nn.Module):
 
 
 class TransformerEncoderLayer(nn.Module):
-    def __init__(self, hid_dim, n_heads, pf_dim, dropout, device):
+    def __init__(self, hid_dim, n_heads, pf_dim, dropout,device):
         super().__init__()
 
         self.self_attn_layer_norm = nn.LayerNorm(hid_dim)
         self.ff_layer_norm = nn.LayerNorm(hid_dim)
         self.self_attention = MultiHeadAttentionLayer(hid_dim, n_heads,
-                                                      dropout, device)
+                                                      dropout,device)
         self.positionwise_feedforward = PositionwiseFeedforwardLayer(
             hid_dim, pf_dim, dropout)
         self.dropout = nn.Dropout(dropout)
@@ -123,29 +132,36 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, output_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,
-                 device):
+    def __init__(self, output_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,device
+                 ):
         super().__init__()
 
         assert n_layers > 0
 
+        self.hid_dim = hid_dim
         self.tok_embed = nn.Embedding(output_dim, hid_dim)
         self.pos_embed = PositionalEncoding(hid_dim, dropout)
 
         self.layers = nn.ModuleList([
-            TransformerDecoderLayer(hid_dim, n_heads, pf_dim, dropout, device)
+            TransformerDecoderLayer(hid_dim, n_heads, pf_dim, dropout,device)
             for _ in range(n_layers)
         ])
 
         self.fc_out = nn.Linear(hid_dim, output_dim)
 
         self.dropout = nn.Dropout(dropout)
-        self.scale = torch.sqrt(torch.FloatTensor([hid_dim])).to(device)
+        self.device = device
+
+    def get_scale(self):
+        scale = torch.sqrt(torch.FloatTensor([self.hid_dim]))
+        if self.device == 'cuda':
+            scale = scale.cuda()
+        return scale
 
     # Returns [batch size, trg len, output dim]
     def forward(self, trg, enc_src, trg_mask, src_mask):
-
-        x = self.tok_embed(trg) * self.scale
+        scale = self.get_scale()
+        x = self.tok_embed(trg) * scale
         x = self.pos_embed(x)
 
         for layer in self.layers:
@@ -156,16 +172,16 @@ class TransformerDecoder(nn.Module):
 
 
 class TransformerDecoderLayer(nn.Module):
-    def __init__(self, hid_dim, n_heads, pf_dim, dropout, device):
+    def __init__(self, hid_dim, n_heads, pf_dim, dropout,device):
         super().__init__()
 
         self.self_attn_layer_norm = nn.LayerNorm(hid_dim)
         self.enc_attn_layer_norm = nn.LayerNorm(hid_dim)
         self.ff_layer_norm = nn.LayerNorm(hid_dim)
         self.self_attention = MultiHeadAttentionLayer(hid_dim, n_heads,
-                                                      dropout, device)
+                                                      dropout,device)
         self.encoder_attention = MultiHeadAttentionLayer(
-            hid_dim, n_heads, dropout, device)
+            hid_dim, n_heads, dropout,device)
         self.positionwise_feedforward = PositionwiseFeedforwardLayer(
             hid_dim, pf_dim, dropout)
         self.dropout = nn.Dropout(dropout)
@@ -202,7 +218,7 @@ class TransformerDecoderLayer(nn.Module):
 
 
 class MultiHeadAttentionLayer(nn.Module):
-    def __init__(self, hid_dim, n_heads, dropout, device):
+    def __init__(self, hid_dim, n_heads, dropout,device):
         super().__init__()
 
         assert hid_dim % n_heads == 0
@@ -218,8 +234,7 @@ class MultiHeadAttentionLayer(nn.Module):
         self.fc_o = nn.Linear(hid_dim, hid_dim)
 
         self.dropout = nn.Dropout(dropout)
-
-        self.scale = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
+        self.device = device
 
     def devide_dim_by_head(self, x, batch_size):
         return x.view(batch_size, -1, self.n_heads,
@@ -237,7 +252,10 @@ class MultiHeadAttentionLayer(nn.Module):
         K = self.devide_dim_by_head(K, batch_size)
         V = self.devide_dim_by_head(V, batch_size)
 
-        energy = torch.matmul(Q, K.permute(0, 1, 3, 2)) / self.scale
+        scale = torch.sqrt(torch.FloatTensor([self.head_dim]))
+        if self.device == 'cuda':
+            scale = scale.cuda()
+        energy = torch.matmul(Q, K.permute(0, 1, 3, 2)) / scale
         #energy = [batch size, n heads, query len, key len]
 
         if mask is not None:
@@ -288,45 +306,3 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
-def translate_sentence(tokens,
-                       src_field,
-                       trg_field,
-                       model,
-                       device,
-                       max_len=50):
-
-    model.eval()
-
-    tokens = ['<sos>'] + tokens + ['<eos>']
-
-    src_indexes = [src_field.vocab.stoi[token] for token in tokens]
-
-    src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
-
-    src_mask = model.make_src_mask(src_tensor)
-
-    with torch.no_grad():
-        enc_src = model.encoder(src_tensor, src_mask)
-
-    trg_indexes = [trg_field.vocab.stoi[trg_field.init_token]]
-
-    for i in range(max_len):
-
-        trg_tensor = torch.LongTensor(trg_indexes).unsqueeze(0).to(device)
-
-        trg_mask = model.make_trg_mask(trg_tensor)
-
-        with torch.no_grad():
-            output, attention = model.decoder(trg_tensor, enc_src, trg_mask,
-                                              src_mask)
-
-        pred_token = output.argmax(2)[:, -1].item()
-
-        trg_indexes.append(pred_token)
-
-        if pred_token == trg_field.vocab.stoi[trg_field.eos_token]:
-            break
-
-    trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
-
-    return trg_tokens[1:], attention
