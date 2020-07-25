@@ -4,7 +4,6 @@ import random
 import logging
 
 import numpy as np
-from tqdm import tqdm
 import torch
 import wandb
 from torch import nn
@@ -66,7 +65,7 @@ def train(args, model, dataset):
 
     model.train()
     epoch_loss = 0
-    for data in tqdm(dataset):
+    for data in dataset:
         model.zero_grad()
 
         loss = forward(model, data, args.criterion)
@@ -97,13 +96,9 @@ def evaluate(args, model, dataset):
     model.eval()
     epoch_loss = 0
     with torch.no_grad():
-        for data in tqdm(dataset):
+        for data in dataset:
 
             loss = forward(model, data, args.criterion)
-
-            # Report the loss
-            if not args.test_run:
-                wandb.log({"eval_loss": loss})
 
             epoch_loss += loss.item()
 
@@ -111,6 +106,10 @@ def evaluate(args, model, dataset):
             if args.test_run:
                 print("Test succeed for eval loop, return.")
                 return epoch_loss / 1
+
+    # Report the loss
+    if not args.test_run:
+        wandb.log({"eval_loss": loss})
 
     return epoch_loss / len(dataset)
 
