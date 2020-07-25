@@ -9,3 +9,4 @@ src/trainer/wandb
 src/wandb
 wandb
 *.pytest_cache
+*.ipynb_checkpoints
