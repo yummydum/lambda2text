@@ -45,7 +45,7 @@ def test_fields(data):
     assert 'x043135' not in TEXT.vocab.stoi
 
     return
-
+    
 
 def test_batch(data):
     batch = next(iter(data[0]))

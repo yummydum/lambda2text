@@ -18,6 +18,8 @@ Amrozi accused his brother , whom he called " the witness " , of deliberately di
 
 # TODO:
 
+- Try English-Dutch model for sanity check 
+    - Also could be used to show how hard lambda2text is for vanila seq2seq
 - Implement encoders which takes tree structure in the logical formula in account
 
 # Preprocess

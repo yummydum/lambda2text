@@ -25,9 +25,13 @@ def main():
             # May skip if the result is already present
             result_path = formal_spilt / f_path.name
             if result_path.exists():
-                lines = result_path.read_text().split('\n')
-                if len(lines) == 1001:
-                    continue
+                continue
+                # lines = result_path.read_text().split('\n')
+                # if len(lines) == 401:
+                #     print(f'Skip file {result_path} since result already exists')
+                #     continue
+                # else:
+                #     print(f'File exists but the length is {len(lines)}')
 
             logging.info(f'Now running {f_path}')
             cmd = ['make', 'ccg2lambda', f'file={f_path.name}']

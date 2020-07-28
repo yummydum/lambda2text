@@ -42,5 +42,4 @@ def load_datasets(batch_size, device,test_mode=False):
     return data.BucketIterator.splits((train, dev, test),
                                       batch_size=batch_size,
                                       shuffle=True,
-                                      device=device,
-                                      sort_key=lambda x: len(x.formal))
+                                      device=device)
