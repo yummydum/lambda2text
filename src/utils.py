@@ -3,7 +3,6 @@ import torch
 # import matplotlib.pyplot as plt
 # import matplotlib.ticker as ticker
 
-from tokenizers import SentencePieceBPETokenizer
 from transformers.optimization import AdamW
 
 from config import DATA_DIR
