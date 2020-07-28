@@ -1,14 +1,14 @@
 import argparse
-import sys
 import random
 import logging
 
 import numpy as np
 import torch
-import wandb
 from torch import nn
-from config import DATA_DIR
+import wandb
+from pytorch_memlab import LineProfiler
 
+from config import DATA_DIR
 from model.seq2seq import TransformerSeq2Seq
 from preprocess.dataset import load_datasets, TEXT, FORMAL
 from utils import get_optimzer
@@ -72,7 +72,7 @@ def train(args, model, dataset):
 
         # Report the loss
         if not args.test_run:
-            wandb.log({"train_loss": loss})
+            wandb.log({"train_loss": loss.item()})
 
         # Update param
         loss.backward()
@@ -107,11 +107,12 @@ def evaluate(args, model, dataset):
                 print("Test succeed for eval loop, return.")
                 return epoch_loss / 1
 
+    result = epoch_loss / len(dataset)
     # Report the loss
     if not args.test_run:
-        wandb.log({"eval_loss": loss})
+        wandb.log({"eval_loss": result})
 
-    return epoch_loss / len(dataset)
+    return result
 
 
 def init_model(args):
@@ -151,7 +152,9 @@ def main():
     args = set_args()
 
     logging.info('Now loading datasets...')
-    train_data, dev_data, test_data = load_datasets(args.batch_size, DEVICE, test_mode=args.test_run)
+    train_data, dev_data, test_data = load_datasets(args.batch_size,
+                                                    DEVICE,
+                                                    test_mode=args.test_run)
 
     logging.info(f'Now initializing model with args {args}')
     model = init_model(args)
@@ -171,13 +174,17 @@ def main():
 
     # Loop over epochs
     logging.info('Start training!')
-    for epoch in range(args.epoch_num):
-        print(f'Now in {epoch}th epoch')
-        train_loss = train(args, model, train_data)
-        valid_loss = evaluate(args, model, dev_data)
-        if args.test_run:
-            print("Test succeed for main, exit.")
-            return 0
+    with LineProfiler(train, forward) as prof:
+        for epoch in range(args.epoch_num):
+            print(f'Now in {epoch}th epoch')
+            train(args, model, train_data)
+            evaluate(args, model, dev_data)
+            if args.test_run:
+                print("Test succeed for main, exit.")
+                print(prof.display())
+                return 0
+
+    print(prof.display())
 
     logging.info('Finish train, save model...')
     result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}.pt'
