@@ -2,7 +2,8 @@ import argparse
 from pathlib import Path
 import torch
 from tqdm import tqdm
-from preprocess.dataset_multi30k import load_Multi30k,ENGLISH, GERMAN,tokenize_de,tokenize_en
+from preprocess.dataset import load_datasets, FORMAL, TEXT
+from utils import tokenize_formal
 from config import DATA_DIR
 
 model_dir = DATA_DIR / 'trained_model'
@@ -19,7 +20,7 @@ def set_args():
     args = parser.parse_args()
     return args
 
-def translate_sentence(german,
+def translate_sentence(formula,
                        src_field,
                        trg_field,
                        model,
@@ -31,7 +32,7 @@ def translate_sentence(german,
     assert hasattr(src_field, 'vocab'), 'build vocab first!'
 
     # Encode
-    tokens = [x.lower() for x in tokenize_de(german)]
+    tokens = tokenize_formal(formula)
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
     src_indexes = [src_field.vocab.stoi[token] for token in tokens]
     src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
@@ -72,8 +73,7 @@ def main():
 
     # Load dataset
     print('Now loading datasets...')
-    # _, _, test = load_datasets(1, DEVICE)
-    train,dev,test = load_Multi30k(1,DEVICE)
+    train,dev,test = load_datasets(1,DEVICE)
 
     # Load trained model
     print('Now loading model...')
@@ -87,22 +87,21 @@ def main():
     with result_path.open(mode='w',encoding='utf-8') as f:
         for example in tqdm(train):
             
-            golden = example.trg[0].squeeze().tolist()
-            golden = ' '.join([ENGLISH.vocab.itos[x] for x in golden][1:-1]) 
+            golden = example.text[0].squeeze().tolist()
+            golden = ' '.join([TEXT.vocab.itos[x] for x in golden][1:-1]) 
             f.write(golden + '\n') 
 
-            inputs = example.src[0].squeeze().tolist()
+            inputs = example.formal[0].squeeze().tolist()
             print(inputs)
-            inputs = ' '.join([GERMAN.vocab.itos[x] for x in inputs][1:-1])
+            inputs = ' '.join([FORMAL.vocab.itos[x] for x in inputs][1:-1])
             f.write(inputs + '\n')
 
-            result,_ = translate_sentence(inputs, GERMAN, ENGLISH, model, DEVICE)
+            result,_ = translate_sentence(inputs, FORMAL, TEXT, model, DEVICE)
             f.write(' '.join(result)+ '\n\n')
             count += 1
         
             if count > 100:
                 break
-
     # Additional interactive session
     # print('You can type something now')
     # while True:
