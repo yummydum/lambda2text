@@ -1,7 +1,3 @@
-setup:
-	python -m spacy download en
-	depccg_en download elmo
-
 ccg2lambda:
 	# cat data/mnli_split/${file} | depccg_en --format ccg2lambda --annotator spacy > data/formal_split/${file}
 	cat data/mnli_split/${file} | depccg_en --model elmo --format ccg2lambda --annotator spacy  > data/formal_split/${file}

@@ -1,0 +1,4 @@
+depccg==1.1.0 
+torchtext==0.7.0 
+transformers==3.0.0
+pytorch_memlab==0.2.1

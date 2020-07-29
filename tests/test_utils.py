@@ -39,6 +39,10 @@ def test_translate_sentence(dataset, model, formula):
     assert attention.size()[3] == len(tokenize_formal(formula)) + 2
     return
 
+def test_calculate_blue(dataset):
+    result, _ = translate_sentence(dataset, FORMAL, TEXT, model, 'cpu')
+
+    return 
 
 @pytest.mark.skip
 def test_display_attention(dataset, model, formula):

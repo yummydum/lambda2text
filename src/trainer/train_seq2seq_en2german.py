@@ -10,13 +10,14 @@ from pytorch_memlab import LineProfiler
 
 from config import DATA_DIR
 from model.seq2seq import TransformerSeq2Seq
-from preprocess.dataset import load_datasets, TEXT, FORMAL
+from preprocess.dataset_multi30k import load_Multi30k, ENGLISH,GERMAN
 from utils import get_optimzer,translation_example
 
 random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
 torch.cuda.manual_seed(42)
+torch.backends.cudnn.deterministic = True
 
 # Set device
 if torch.cuda.is_available():
@@ -37,8 +38,9 @@ def forward(model, data, criterion):
     """
     Format the data, forward, return the loss
     """
-    src = data.formal[0]
-    trg = data.text[0]
+
+    src = data.src
+    trg = data.trg
 
     # Replace eos to pad to cut off the eos token
     trg_input = trg.clone()
@@ -118,16 +120,16 @@ def evaluate(args, model, dataset):
 def init_model(args):
     if args.test_run:
         # Small model for fast test
-        model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
-                                   output_dim=len(TEXT.vocab),
+        model = TransformerSeq2Seq(input_dim=len(GERMAN.vocab),
+                                   output_dim=len(ENGLISH.vocab),
                                    hid_dim=14,
                                    n_heads=7,
                                    n_layers=2,
                                    dropout=0.1,
                                    device=DEVICE.type)
     else:
-        model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
-                                   output_dim=len(TEXT.vocab),
+        model = TransformerSeq2Seq(input_dim=len(GERMAN.vocab),
+                                   output_dim=len(ENGLISH.vocab),
                                    hid_dim=args.hid_dim,
                                    n_heads=args.n_heads,
                                    n_layers=args.n_layers,
@@ -152,9 +154,8 @@ def main():
     args = set_args()
 
     logging.info('Now loading datasets...')
-    train_data, dev_data, test_data = load_datasets(args.batch_size,
-                                                    DEVICE,
-                                                    test_mode=args.test_run)
+    train_data, dev_data, test_data = load_Multi30k(args.batch_size,
+                                                    DEVICE)
 
     logging.info(f'Now initializing model with args {args}')
     model = init_model(args)
@@ -174,7 +175,7 @@ def main():
 
     # Loop over epochs
     logging.info('Start training!')
-    # with LineProfiler(train, forward) as prof:
+    #with LineProfiler(train, forward) as prof:
     for epoch in range(args.epoch_num):
         logging.info(f'Now in {epoch}th epoch')
 
@@ -188,19 +189,21 @@ def main():
         # Log example translation
         # translation_example(test_data,model,TEXT,FORMAL,DEVICE)
 
-        # Calc BLUE score
-
         if args.test_run:
             break
-        else:
-            result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}_{epoch}.pt'
-            logging.info(f'Saving model to {result_path}')
-            torch.save(model, str(result_path))
 
-    logging.info('Finish process')
     test_loss = evaluate(args,model,test_data)
-    if not args.test_run:
-        wandb.log({"test_loss": test_loss})
+
+    # End of process
+    if args.test_run:
+        logging.info('Test run succeed, exit')
+        return 0
+    else:
+        if not args.test_run:
+            wandb.log({"test_loss": test_loss})
+        logging.info('Saving model...')
+        result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}.pt'
+        torch.save(model, str(result_path))
     return 0
 
 

@@ -1,8 +1,12 @@
+import warnings
+warnings.simplefilter('ignore')  # torchtext depreciation warning too verbose
+
 from torchtext import data
 from torchtext.data.utils import get_tokenizer
 
 from config import DATA_DIR
 from utils import tokenize_formal,tokenize_text
+
 
 FORMAL = data.Field(sequential=True,
                     include_lengths=True,
@@ -42,4 +46,6 @@ def load_datasets(batch_size, device,test_mode=False):
     return data.BucketIterator.splits((train, dev, test),
                                       batch_size=batch_size,
                                       shuffle=True,
-                                      device=device)
+                                      device=device,
+                                      sort_key=lambda x: len(x.formal)
+                                      )

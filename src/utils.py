@@ -2,7 +2,7 @@ import joblib
 import torch
 # import matplotlib.pyplot as plt
 # import matplotlib.ticker as ticker
-
+from torchtext.data.metrics import bleu_score
 from transformers.optimization import AdamW
 
 from config import DATA_DIR
@@ -43,6 +43,28 @@ def tokenize_formal(line):
 def tokenize_text(line):
     result = TEXT_TOKENIZER.encode(line).tokens
     return result
+
+
+def translation_example(data,model,src_field,trg_field,device):
+    for i, example in enumerate(data):
+    
+        print('Original sentence is:')
+        original = example.text[0].squeeze().tolist()
+        original = ' '.join([src_field.vocab.itos[x] for x in original][1:-1]) 
+        print(original)
+
+        print('Formal representation is:')
+        formula = example.formal[0].squeeze().tolist()
+        formula = ' '.join([trg_field.vocab.itos[x] for x in formula][1:-1])
+        print(formula)
+
+        print('Translation result is:')
+        result,_ = translate_sentence(formula, trg_field, src_field, model, device)
+        print(result)
+
+        if i == 10:
+            break
+    return 
 
 
 def translate_sentence(formula,
@@ -87,6 +109,26 @@ def translate_sentence(formula,
     # Convert to tokens
     trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
     return trg_tokens[1:], attention
+
+def calculate_bleu(data, src_field, trg_field, model, device, max_len = 50):
+    
+    trgs = []
+    pred_trgs = []
+    
+    for datum in data:
+        
+        src = vars(datum)['src']
+        trg = vars(datum)['trg']
+        
+        pred_trg, _ = translate_sentence(src, src_field, trg_field, model, device, max_len)
+        
+        #cut off <eos> token
+        pred_trg = pred_trg[:-1]
+        
+        pred_trgs.append(pred_trg)
+        trgs.append([trg])
+        
+    return bleu_score(pred_trgs, trgs)
 
 
 def display_attention(sentence,

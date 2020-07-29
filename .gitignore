@@ -10,3 +10,4 @@ src/wandb
 wandb
 *.pytest_cache
 *.ipynb_checkpoints
+.data
