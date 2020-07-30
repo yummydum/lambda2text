@@ -3,7 +3,9 @@ from pathlib import Path
 import torch
 from tqdm import tqdm
 from preprocess.dataset_multi30k import load_Multi30k,ENGLISH, GERMAN,tokenize_de,tokenize_en
+from utils import translate_sentence_ge2en
 from config import DATA_DIR
+
 
 model_dir = DATA_DIR / 'trained_model'
 
@@ -19,48 +21,6 @@ def set_args():
     args = parser.parse_args()
     return args
 
-def translate_sentence(german,
-                       src_field,
-                       trg_field,
-                       model,
-                       device,
-                       max_len=50):
-
-    model.eval()
-
-    assert hasattr(src_field, 'vocab'), 'build vocab first!'
-
-    # Encode
-    tokens = [x.lower() for x in tokenize_de(german)]
-    tokens = [src_field.init_token] + tokens + [src_field.eos_token]
-    src_indexes = [src_field.vocab.stoi[token] for token in tokens]
-    src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
-    src_mask = model.make_src_mask(src_tensor)
-    with torch.no_grad():
-        enc_src = model.encoder(src_tensor, src_mask)
-
-    # Decode step by step
-    trg_indexes = [trg_field.vocab.stoi[trg_field.init_token]]
-    for _ in range(max_len):
-
-        # Decoder forward
-        trg_tensor = torch.LongTensor(trg_indexes).unsqueeze(0).to(device)
-        trg_mask = model.make_trg_mask(trg_tensor)
-        with torch.no_grad():
-            output, attention = model.decoder(trg_tensor, enc_src, trg_mask,
-                                              src_mask)
-
-        # max logit for the last element
-        pred_token = output.argmax(2)[:, -1].item()
-        trg_indexes.append(pred_token)
-
-        # Break if end of sentence pridicted
-        if pred_token == trg_field.vocab.stoi[trg_field.eos_token]:
-            break
-
-    # Convert to tokens
-    trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
-    return trg_tokens[1:], attention
 
 
 def main():

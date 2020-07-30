@@ -68,22 +68,26 @@ def translation_example(data, model, src_field, trg_field, device):
     return
 
 
-def translate_sentence(formula,
+def translate_sentence(src,
                        src_field,
                        trg_field,
                        model,
                        device,
-                       max_len=50):
+                       max_len=50,
+                       formula=True):
 
     model.eval()
 
     assert hasattr(src_field, 'vocab'), 'build vocab first!'
 
     # Encode
-    if isinstance(formula, str):
-        tokens = tokenize_formal(formula)
-    elif isinstance(formula, list):
-        tokens = formula
+    if isinstance(src, str):
+        if formula:
+            tokens = tokenize_formal(src)
+        else:
+            tokens = [x.lower() for x in tokenize_de(german)]
+    elif isinstance(src, list):
+        tokens = src
     else:
         raise ValueError()
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
@@ -117,6 +121,7 @@ def translate_sentence(formula,
     return trg_tokens[1:], attention
 
 
+
 def calculate_bleu(data,
                    src_field,
                    trg_field,
@@ -133,8 +138,8 @@ def calculate_bleu(data,
 
     for datum in data:
 
-        src = vars(datum)['formal'][0][0]
-        trg = vars(datum)['text'][0][0]
+        src = vars(datum)['src'][0][0]
+        trg = vars(datum)['trg'][0][0]
 
         src = [src_field.vocab.itos[x] for x in src]
         trg = [trg_field.vocab.itos[x] for x in trg]

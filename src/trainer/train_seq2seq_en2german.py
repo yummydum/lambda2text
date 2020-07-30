@@ -9,8 +9,8 @@ import wandb
 
 from config import DATA_DIR
 from model.seq2seq import TransformerSeq2Seq
-from preprocess.dataset_multi30k import load_Multi30k, ENGLISH, GERMAN
-from utils import get_optimzer, calculate_bleu
+from preprocess.dataset_multi30k import load_Multi30k, SRC, TRG
+from utils import get_optimzer, calculate_bleu_ge2en
 
 random.seed(42)
 torch.manual_seed(42)
@@ -180,7 +180,7 @@ def main():
         # Train & eval
         train(args, model, train_data)
         evaluate(args, model, dev_data)
-        bleu = calculate_bleu(dev_data,
+        bleu = calculate_bleu_ge2en(dev_data,
                               GERMAN,
                               ENGLISH,
                               model,
