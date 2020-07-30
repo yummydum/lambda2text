@@ -9,8 +9,8 @@ import wandb
 
 from config import DATA_DIR
 from model.seq2seq import TransformerSeq2Seq
-from preprocess.dataset import load_datasets, TEXT, FORMAL
 from utils import get_optimzer, calculate_bleu
+from preprocess.dataset import get_loader
 
 random.seed(42)
 torch.manual_seed(42)
@@ -36,8 +36,8 @@ def forward(model, data, criterion):
     """
     Format the data, forward, return the loss
     """
-    src = data.formal[0]
-    trg = data.text[0]
+    src = data.src[0]
+    trg = data.trg[0]
 
     # Replace eos to pad to cut off the eos token
     trg_input = trg.clone()
@@ -114,19 +114,19 @@ def evaluate(args, model, dataset):
     return result
 
 
-def init_model(args):
+def init_model(args, src_field, trg_field):
     if args.test_run:
         # Small model for fast test
-        model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
-                                   output_dim=len(TEXT.vocab),
+        model = TransformerSeq2Seq(input_dim=len(src_field.vocab),
+                                   output_dim=len(trg_field.vocab),
                                    hid_dim=14,
                                    n_heads=7,
                                    n_layers=2,
                                    dropout=0.1,
                                    device=DEVICE.type)
     else:
-        model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
-                                   output_dim=len(TEXT.vocab),
+        model = TransformerSeq2Seq(input_dim=len(src_field.vocab),
+                                   output_dim=len(trg_field.vocab),
                                    hid_dim=args.hid_dim,
                                    n_heads=args.n_heads,
                                    n_layers=args.n_layers,
@@ -151,12 +151,15 @@ def main():
     args = set_args()
 
     logging.info('Now loading datasets...')
-    train_data, dev_data, test_data = load_datasets(args.batch_size,
-                                                    DEVICE,
-                                                    test_mode=args.test_run)
+    loader, SRC, TRG = get_loader(not args.de2en)
+    train_data, dev_data, test_data = loader(
+        args.batch_size,
+        DEVICE,
+        test_mode=args.test_run,
+    )
 
     logging.info(f'Now initializing model with args {args}')
-    model = init_model(args)
+    model = init_model(args, SRC, TRG)
 
     # set up wandb in production mode
     if not args.test_run:
@@ -181,11 +184,13 @@ def main():
         train(args, model, train_data)
         evaluate(args, model, dev_data)
         bleu = calculate_bleu(dev_data,
-                              FORMAL,
-                              TEXT,
+                              SRC,
+                              TRG,
                               model,
                               DEVICE,
-                              trans_path=epoch_trans_path)
+                              trans_path=epoch_trans_path,
+                              formula=args.de2en,
+                              limit=1000)
 
         if args.test_run:
             # Only one epoch for test run
@@ -214,6 +219,7 @@ def set_args():
     parser.add_argument('--epoch_num', default=30, type=int)
     parser.add_argument('--decay', default=0.0, type=float)
     parser.add_argument('--test_run', action='store_true')
+    parser.add_argument('--de2en', action='store_true')
     args = parser.parse_args()
     return args
 

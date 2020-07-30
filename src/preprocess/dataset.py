@@ -8,20 +8,20 @@ from config import DATA_DIR
 from utils import tokenize_formal, tokenize_text
 
 SRC = data.Field(sequential=True,
-                    include_lengths=True,
-                    use_vocab=True,
-                    batch_first=True,
-                    tokenize=tokenize_formal,
-                    init_token='<sos>',
-                    eos_token='<eos>')
+                 use_vocab=True,
+                 batch_first=True,
+                 tokenize=tokenize_formal,
+                 init_token='<sos>',
+                 eos_token='<eos>',
+                 include_lengths=True)
 TRG = data.Field(sequential=True,
-                  include_lengths=True,
-                  use_vocab=True,
-                  batch_first=True,
-                  tokenize=tokenize_text,
-                  is_target=True,
-                  init_token='<sos>',
-                  eos_token='<eos>')
+                 use_vocab=True,
+                 batch_first=True,
+                 tokenize=tokenize_text,
+                 is_target=True,
+                 init_token='<sos>',
+                 eos_token='<eos>',
+                 include_lengths=True)
 
 
 def load_datasets(batch_size, device, test_mode=False):
@@ -31,7 +31,7 @@ def load_datasets(batch_size, device, test_mode=False):
     else:
         data_path = DATA_DIR / 'pairs/mnli.tsv'
 
-    tsv_fld = {"formal": ("formal", SRC), "text": ("text", TRG)}
+    tsv_fld = {"src": ("src", SRC), "trg": ("trg", TRG)}
     dataset = data.TabularDataset(path=data_path, format='tsv', fields=tsv_fld)
 
     # Split
@@ -46,4 +46,13 @@ def load_datasets(batch_size, device, test_mode=False):
                                       batch_size=batch_size,
                                       shuffle=True,
                                       device=device,
-                                      sort_key=lambda x: len(x.formal))
+                                      sort_key=lambda x: len(x.src))
+
+
+def get_loader(is_formal):
+    if is_formal:
+        global load_datasets, SRC, TRG
+        return load_datasets, SRC, TRG
+    else:
+        from preprocess.dataset_multi30k import load_datasets, SRC, TRG
+        return load_datasets, SRC, TRG

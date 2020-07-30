@@ -30,9 +30,9 @@ def main():
     formal_split = DATA_DIR / 'formal_split'
 
     # Init result file
-    with result_path.open(mode='w',encoding='utf-8') as f_w:
+    with result_path.open(mode='w', encoding='utf-8') as f_w:
         writer = csv.writer(f_w, lineterminator='\n', delimiter='\t')
-        writer.writerow(['formal', 'text'])
+        writer.writerow(['src', 'trg'])
 
         # Aggregate split file to result file
         for source in formal_split.iterdir():

@@ -1,6 +1,6 @@
 import pytest
 from model.seq2seq import TransformerSeq2Seq
-from preprocess.dataset import load_datasets, FORMAL, TEXT
+from preprocess.dataset import load_datasets, SRC, TRG
 from trainer.train_seq2seq import DEVICE
 from utils import calculate_bleu, display_attention, tokenize_formal, translate_sentence
 
@@ -17,8 +17,8 @@ def dataset():
 
 @pytest.fixture
 def model():
-    model = TransformerSeq2Seq(input_dim=len(FORMAL.vocab),
-                               output_dim=len(TEXT.vocab),
+    model = TransformerSeq2Seq(input_dim=len(SRC.vocab),
+                               output_dim=len(TRG.vocab),
                                hid_dim=16,
                                n_heads=1,
                                n_layers=2,
@@ -35,7 +35,7 @@ def test_tokenize_formal(formula):
 
 
 def test_translate_sentence(dataset, model, formula):
-    result, attention = translate_sentence(formula, FORMAL, TEXT, model, 'cpu')
+    result, attention = translate_sentence(formula, SRC, TRG, model, 'cpu')
     assert attention.size()[2] == len(result)
     assert attention.size()[3] == len(tokenize_formal(formula)) + 2
     return
@@ -43,14 +43,14 @@ def test_translate_sentence(dataset, model, formula):
 
 def test_calculate_blue(dataset, model, formula):
     train, dev, test = dataset
-    result = calculate_bleu(test, FORMAL, TEXT, model, DEVICE)
+    result = calculate_bleu(test, SRC, TRG, model, DEVICE)
     assert isinstance(result, float)
     return
 
 
 @pytest.mark.skip
 def test_display_attention(dataset, model, formula):
-    translation, attention = translate_sentence(formula, FORMAL, TEXT, model,
+    translation, attention = translate_sentence(formula, SRC, TRG, model,
                                                 'cpu')
     display_attention(tokenize_formal(formula),
                       translation,

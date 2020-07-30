@@ -1,10 +1,10 @@
 import pytest
-from preprocess.dataset import load_datasets, FORMAL, TEXT
+from preprocess.dataset import load_datasets, SRC, TRG
 
 
 @pytest.fixture(scope='module')
 def data():
-    train, dev, test = load_datasets(5, 'cpu')
+    train, dev, test = load_datasets(5, 'cpu', test_mode=True)
     return train, dev, test
 
 
@@ -25,32 +25,32 @@ def test_splits(data):
 def test_fields(data):
 
     # Should have been built
-    assert hasattr(FORMAL, 'vocab')
-    assert hasattr(TEXT, 'vocab')
+    assert hasattr(SRC, 'vocab')
+    assert hasattr(TRG, 'vocab')
 
     # Formal
-    assert FORMAL.vocab.itos[0] == '<unk>'
-    assert FORMAL.vocab.itos[1] == '<pad>'
-    assert FORMAL.vocab.itos[2] == '<sos>'
-    assert FORMAL.vocab.itos[3] == '<eos>'
+    assert SRC.vocab.itos[0] == '<unk>'
+    assert SRC.vocab.itos[1] == '<pad>'
+    assert SRC.vocab.itos[2] == '<sos>'
+    assert SRC.vocab.itos[3] == '<eos>'
 
-    assert '▁exists' in FORMAL.vocab.stoi.keys()
+    assert '▁exists' in SRC.vocab.stoi.keys()
 
     # Text
-    assert TEXT.vocab.itos[0] == '<unk>'
-    assert TEXT.vocab.itos[1] == '<pad>'
-    assert TEXT.vocab.itos[2] == '<sos>'
-    assert TEXT.vocab.itos[3] == '<eos>'
+    assert TRG.vocab.itos[0] == '<unk>'
+    assert TRG.vocab.itos[1] == '<pad>'
+    assert TRG.vocab.itos[2] == '<sos>'
+    assert TRG.vocab.itos[3] == '<eos>'
 
-    assert 'x043135' not in TEXT.vocab.stoi
+    assert 'x043135' not in TRG.vocab.stoi
 
     return
 
 
 def test_batch(data):
     batch = next(iter(data[0]))
-    formal, formal_len = batch.formal
-    text, text_len = batch.text
+    formal, formal_len = batch.src
+    text, text_len = batch.trg
 
     assert formal.size() == (5, formal_len.max().item())
     assert text.size() == (5, text_len.max().item())
@@ -61,8 +61,8 @@ def test_batch(data):
 
 def test_padding(data):
     batch = next(iter(data[0]))
-    formal, formal_len = batch.formal
-    text, text_len = batch.text
+    formal, formal_len = batch.src
+    text, text_len = batch.trg
 
     # Formal
     for i in range(5):
@@ -80,7 +80,6 @@ def test_padding(data):
 
 
 def test_vocab_num():
-    assert len(
-        FORMAL.vocab) <= 20000  # small freq filtered, thus less than 20000
-    assert len(TEXT.vocab) <= 20000
+    assert len(SRC.vocab) <= 20000  # small freq filtered, thus less than 20000
+    assert len(TRG.vocab) <= 20000
     return

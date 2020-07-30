@@ -4,11 +4,10 @@ import torch
 # import matplotlib.ticker as ticker
 from torchtext.data.metrics import bleu_score
 from transformers.optimization import AdamW
-
 from config import DATA_DIR
 
-FORMAL_TOKENIZER = joblib.load(DATA_DIR / 'tokenizers/tokenizer_formal.joblib')
-TEXT_TOKENIZER = joblib.load(DATA_DIR / 'tokenizers/tokenizer_text.joblib')
+SRC_TOKENIZER = joblib.load(DATA_DIR / 'tokenizers/tokenizer_formal.joblib')
+TRG_TOKENIZER = joblib.load(DATA_DIR / 'tokenizers/tokenizer_text.joblib')
 
 
 def get_optimzer(model, lr, decay=0.0):
@@ -36,12 +35,12 @@ def get_optimzer(model, lr, decay=0.0):
 
 
 def tokenize_formal(line):
-    result = FORMAL_TOKENIZER.encode(line).tokens
+    result = SRC_TOKENIZER.encode(line).tokens
     return result
 
 
 def tokenize_text(line):
-    result = TEXT_TOKENIZER.encode(line).tokens
+    result = TRG_TOKENIZER.encode(line).tokens
     return result
 
 
@@ -85,7 +84,9 @@ def translate_sentence(src,
         if formula:
             tokens = tokenize_formal(src)
         else:
-            tokens = [x.lower() for x in tokenize_de(german)]
+            # pesky import
+            from preprocess.dataset_multi30k import tokenize_de
+            tokens = [x.lower() for x in tokenize_de(src)]
     elif isinstance(src, list):
         tokens = src
     else:
@@ -121,14 +122,15 @@ def translate_sentence(src,
     return trg_tokens[1:], attention
 
 
-
 def calculate_bleu(data,
                    src_field,
                    trg_field,
                    model,
                    device,
                    max_len=50,
-                   trans_path=None):
+                   trans_path=None,
+                   formula=True,
+                   limit=None):
 
     trgs = []
     pred_trgs = []
@@ -136,7 +138,11 @@ def calculate_bleu(data,
     if trans_path is not None:
         f = trans_path.open(mode='w')
 
+    count = 0
     for datum in data:
+
+        if limit is not None and count > limit:
+            break
 
         src = vars(datum)['src'][0][0]
         trg = vars(datum)['trg'][0][0]
@@ -145,7 +151,7 @@ def calculate_bleu(data,
         trg = [trg_field.vocab.itos[x] for x in trg]
 
         pred_trg, _ = translate_sentence(src, src_field, trg_field, model,
-                                         device, max_len)
+                                         device, max_len, formula)
 
         if trans_path is not None:
             f.write(' '.join(src) + '\n')
