@@ -34,7 +34,7 @@ def test_fields(data):
     assert FORMAL.vocab.itos[2] == '<sos>'
     assert FORMAL.vocab.itos[3] == '<eos>'
 
-    assert 'exists' in FORMAL.vocab.stoi
+    assert '▁exists' in FORMAL.vocab.stoi.keys()
 
     # Text
     assert TEXT.vocab.itos[0] == '<unk>'
@@ -45,7 +45,7 @@ def test_fields(data):
     assert 'x043135' not in TEXT.vocab.stoi
 
     return
-    
+
 
 def test_batch(data):
     batch = next(iter(data[0]))
@@ -78,7 +78,9 @@ def test_padding(data):
 
     return
 
+
 def test_vocab_num():
-    assert len(FORMAL.vocab) <= 20000  # small freq filtered, thus less than 20000
+    assert len(
+        FORMAL.vocab) <= 20000  # small freq filtered, thus less than 20000
     assert len(TEXT.vocab) <= 20000
-    return 
+    return

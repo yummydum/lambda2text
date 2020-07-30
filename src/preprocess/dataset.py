@@ -5,8 +5,7 @@ from torchtext import data
 from torchtext.data.utils import get_tokenizer
 
 from config import DATA_DIR
-from utils import tokenize_formal,tokenize_text
-
+from utils import tokenize_formal, tokenize_text
 
 FORMAL = data.Field(sequential=True,
                     include_lengths=True,
@@ -25,7 +24,7 @@ TEXT = data.Field(sequential=True,
                   eos_token='<eos>')
 
 
-def load_datasets(batch_size, device,test_mode=False):
+def load_datasets(batch_size, device, test_mode=False):
 
     if test_mode:
         data_path = DATA_DIR / 'pairs/mnli_test.tsv'
@@ -47,5 +46,4 @@ def load_datasets(batch_size, device,test_mode=False):
                                       batch_size=batch_size,
                                       shuffle=True,
                                       device=device,
-                                      sort_key=lambda x: len(x.formal)
-                                      )
+                                      sort_key=lambda x: len(x.formal))

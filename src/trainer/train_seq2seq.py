@@ -6,12 +6,11 @@ import numpy as np
 import torch
 from torch import nn
 import wandb
-from pytorch_memlab import LineProfiler
 
 from config import DATA_DIR
 from model.seq2seq import TransformerSeq2Seq
 from preprocess.dataset import load_datasets, TEXT, FORMAL
-from utils import get_optimzer,translation_example
+from utils import get_optimzer, calculate_bleu
 
 random.seed(42)
 torch.manual_seed(42)
@@ -174,31 +173,31 @@ def main():
 
     # Loop over epochs
     logging.info('Start training!')
-    # with LineProfiler(train, forward) as prof:
     for epoch in range(args.epoch_num):
         logging.info(f'Now in {epoch}th epoch')
+        epoch_trans_path = DATA_DIR / f'translation_log_{epoch}.txt'
 
         # Train & eval
         train(args, model, train_data)
         evaluate(args, model, dev_data)
-
-        # Log gpu usage
-        # logging.info(prof.display())
-
-        # Log example translation
-        # translation_example(test_data,model,TEXT,FORMAL,DEVICE)
-
-        # Calc BLUE score
+        bleu = calculate_bleu(dev_data,
+                              FORMAL,
+                              TEXT,
+                              model,
+                              DEVICE,
+                              trans_path=epoch_trans_path)
 
         if args.test_run:
+            # Only one epoch for test run
             break
         else:
+            wandb.log({"bleu": bleu})
             result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}_{epoch}.pt'
             logging.info(f'Saving model to {result_path}')
             torch.save(model, str(result_path))
 
     logging.info('Finish process')
-    test_loss = evaluate(args,model,test_data)
+    test_loss = evaluate(args, model, test_data)
     if not args.test_run:
         wandb.log({"test_loss": test_loss})
     return 0

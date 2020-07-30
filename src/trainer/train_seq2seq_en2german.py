@@ -6,12 +6,11 @@ import numpy as np
 import torch
 from torch import nn
 import wandb
-from pytorch_memlab import LineProfiler
 
 from config import DATA_DIR
 from model.seq2seq import TransformerSeq2Seq
-from preprocess.dataset_multi30k import load_Multi30k, ENGLISH,GERMAN
-from utils import get_optimzer,translation_example
+from preprocess.dataset_multi30k import load_Multi30k, ENGLISH, GERMAN
+from utils import get_optimzer, calculate_bleu
 
 random.seed(42)
 torch.manual_seed(42)
@@ -154,8 +153,7 @@ def main():
     args = set_args()
 
     logging.info('Now loading datasets...')
-    train_data, dev_data, test_data = load_Multi30k(args.batch_size,
-                                                    DEVICE)
+    train_data, dev_data, test_data = load_Multi30k(args.batch_size, DEVICE)
 
     logging.info(f'Now initializing model with args {args}')
     model = init_model(args)
@@ -175,24 +173,26 @@ def main():
 
     # Loop over epochs
     logging.info('Start training!')
-    #with LineProfiler(train, forward) as prof:
     for epoch in range(args.epoch_num):
         logging.info(f'Now in {epoch}th epoch')
+        epoch_trans_path = DATA_DIR / f'translation_log_en2german_{epoch}.txt'
 
         # Train & eval
         train(args, model, train_data)
         evaluate(args, model, dev_data)
-
-        # Log gpu usage
-        # logging.info(prof.display())
-
-        # Log example translation
-        # translation_example(test_data,model,TEXT,FORMAL,DEVICE)
+        bleu = calculate_bleu(dev_data,
+                              GERMAN,
+                              ENGLISH,
+                              model,
+                              DEVICE,
+                              trans_path=epoch_trans_path)
 
         if args.test_run:
             break
+        else:
+            wandb.log({"bleu": bleu})
 
-    test_loss = evaluate(args,model,test_data)
+    test_loss = evaluate(args, model, test_data)
 
     # End of process
     if args.test_run:
@@ -211,9 +211,9 @@ def set_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--hid_dim', default=256, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
-    parser.add_argument('--lr', default=1e-4, type=float)
+    parser.add_argument('--lr', default=5e-4, type=float)
     parser.add_argument('--n_heads', default=8, type=int)
-    parser.add_argument('--n_layers', default=6, type=int)
+    parser.add_argument('--n_layers', default=3, type=int)
     parser.add_argument('--batch_size', default=128, type=int)
     parser.add_argument('--epoch_num', default=30, type=int)
     parser.add_argument('--decay', default=0.0, type=float)

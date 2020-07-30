@@ -45,12 +45,12 @@ def tokenize_text(line):
     return result
 
 
-def translation_example(data,model,src_field,trg_field,device):
+def translation_example(data, model, src_field, trg_field, device):
     for i, example in enumerate(data):
-    
+
         print('Original sentence is:')
         original = example.text[0].squeeze().tolist()
-        original = ' '.join([src_field.vocab.itos[x] for x in original][1:-1]) 
+        original = ' '.join([src_field.vocab.itos[x] for x in original][1:-1])
         print(original)
 
         print('Formal representation is:')
@@ -59,12 +59,13 @@ def translation_example(data,model,src_field,trg_field,device):
         print(formula)
 
         print('Translation result is:')
-        result,_ = translate_sentence(formula, trg_field, src_field, model, device)
+        result, _ = translate_sentence(formula, trg_field, src_field, model,
+                                       device)
         print(result)
 
         if i == 10:
             break
-    return 
+    return
 
 
 def translate_sentence(formula,
@@ -79,7 +80,12 @@ def translate_sentence(formula,
     assert hasattr(src_field, 'vocab'), 'build vocab first!'
 
     # Encode
-    tokens = tokenize_formal(formula)
+    if isinstance(formula, str):
+        tokens = tokenize_formal(formula)
+    elif isinstance(formula, list):
+        tokens = formula
+    else:
+        raise ValueError()
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
     src_indexes = [src_field.vocab.stoi[token] for token in tokens]
     src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
@@ -110,24 +116,47 @@ def translate_sentence(formula,
     trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
     return trg_tokens[1:], attention
 
-def calculate_bleu(data, src_field, trg_field, model, device, max_len = 50):
-    
+
+def calculate_bleu(data,
+                   src_field,
+                   trg_field,
+                   model,
+                   device,
+                   max_len=50,
+                   trans_path=None):
+
     trgs = []
     pred_trgs = []
-    
+
+    if trans_path is not None:
+        f = trans_path.open(mode='w')
+
     for datum in data:
-        
-        src = vars(datum)['src']
-        trg = vars(datum)['trg']
-        
-        pred_trg, _ = translate_sentence(src, src_field, trg_field, model, device, max_len)
-        
+
+        src = vars(datum)['formal'][0][0]
+        trg = vars(datum)['text'][0][0]
+
+        src = [src_field.vocab.itos[x] for x in src]
+        trg = [trg_field.vocab.itos[x] for x in trg]
+
+        pred_trg, _ = translate_sentence(src, src_field, trg_field, model,
+                                         device, max_len)
+
+        if trans_path is not None:
+            f.write(' '.join(src) + '\n')
+            f.write(' '.join(trg) + '\n')
+            f.write(' '.join(pred_trg) + '\n')
+            f.write('\n')
+
         #cut off <eos> token
         pred_trg = pred_trg[:-1]
-        
+
         pred_trgs.append(pred_trg)
         trgs.append([trg])
-        
+
+    if trans_path is not None:
+        f.close()
+
     return bleu_score(pred_trgs, trgs)
 
 

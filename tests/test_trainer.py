@@ -6,11 +6,15 @@ from preprocess.dataset import load_datasets
 
 @pytest.fixture
 def mock_arg():
-    return SimpleNamespace(test_run=False, hid_dim=10, n_heads=2, n_layers=3,dropout=0.1)
+    return SimpleNamespace(test_run=False,
+                           hid_dim=10,
+                           n_heads=2,
+                           n_layers=3,
+                           dropout=0.1)
 
 
 def test_init_model(mock_arg):
-    load_datasets(5, 'CPU',test_mode=True)  # Need to run vocab.build
+    load_datasets(5, 'cpu', test_mode=True)  # Need to run vocab.build
     target.init_model(mock_arg)
     return
 
