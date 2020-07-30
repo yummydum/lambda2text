@@ -1,4 +1,5 @@
 import pytest
+import torch
 from model.seq2seq import TransformerSeq2Seq
 from preprocess.dataset import load_datasets, SRC, TRG
 from trainer.train_seq2seq import DEVICE
@@ -22,7 +23,7 @@ def model():
                                hid_dim=16,
                                n_heads=1,
                                n_layers=2,
-                               device='cpu',
+                               device=torch.device('cpu'),
                                dropout=0.1)
     return model
 

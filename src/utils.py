@@ -4,34 +4,11 @@ import torch
 # import matplotlib.ticker as ticker
 from torchtext.data.metrics import bleu_score
 from transformers.optimization import AdamW
+from preprocess.dataset_multi30k import tokenize_de
 from config import DATA_DIR
 
 SRC_TOKENIZER = joblib.load(DATA_DIR / 'tokenizers/tokenizer_formal.joblib')
 TRG_TOKENIZER = joblib.load(DATA_DIR / 'tokenizers/tokenizer_text.joblib')
-
-
-def get_optimzer(model, lr, decay=0.0):
-    no_decay = ["bias", "LayerNorm.weight"]
-    optimizer_grouped_parameters = [
-        {
-            "params": [
-                p for n, p in model.named_parameters()
-                if not any(nd in n for nd in no_decay)
-            ],
-            "weight_decay":
-            decay,
-        },
-        {
-            "params": [
-                p for n, p in model.named_parameters()
-                if any(nd in n for nd in no_decay)
-            ],
-            "weight_decay":
-            0.0,
-        },
-    ]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=lr)
-    return optimizer
 
 
 def tokenize_formal(line):
@@ -79,18 +56,17 @@ def translate_sentence(src,
 
     assert hasattr(src_field, 'vocab'), 'build vocab first!'
 
-    # Encode
+    # Tokenize
     if isinstance(src, str):
         if formula:
             tokens = tokenize_formal(src)
         else:
-            # pesky import
-            from preprocess.dataset_multi30k import tokenize_de
             tokens = [x.lower() for x in tokenize_de(src)]
     elif isinstance(src, list):
         tokens = src
     else:
         raise ValueError()
+
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
     src_indexes = [src_field.vocab.stoi[token] for token in tokens]
     src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
@@ -141,14 +117,8 @@ def calculate_bleu(data,
     count = 0
     for datum in data:
 
-        if limit is not None and count > limit:
-            break
-
-        src = vars(datum)['src'][0][0]
-        trg = vars(datum)['trg'][0][0]
-
-        src = [src_field.vocab.itos[x] for x in src]
-        trg = [trg_field.vocab.itos[x] for x in trg]
+        src = vars(datum)['src']
+        trg = vars(datum)['trg']
 
         pred_trg, _ = translate_sentence(src, src_field, trg_field, model,
                                          device, max_len, formula)
