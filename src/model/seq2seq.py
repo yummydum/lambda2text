@@ -15,7 +15,8 @@ class Seq2Seq(nn.Module):
             n_layers,
             dropout,
             device,
-            pf_dim=512):
+            pf_dim=512,
+            max_len=100):
         super(Seq2Seq, self).__init__()
 
         # Settings
@@ -31,7 +32,7 @@ class Seq2Seq(nn.Module):
                                           dropout=dropout,
                                           n_heads=n_heads,
                                           device=self.device,
-                                          max_len=100)
+                                          max_len=max_len)
         self.decoder = Decoder(output_dim=output_dim,
                                           hid_dim=hid_dim,
                                           n_layers=n_layers,
@@ -39,7 +40,7 @@ class Seq2Seq(nn.Module):
                                           pf_dim=pf_dim,
                                           dropout=dropout,
                                           device=self.device,
-                                          max_len=100)
+                                          max_len=max_len)
 
     def make_src_mask(self, src):
         src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)

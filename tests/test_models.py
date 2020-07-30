@@ -2,7 +2,7 @@ import random
 import numpy as np
 import pytest
 import torch
-from model.seq2seq import TransformerSeq2Seq, TransformerEncoder, TransformerDecoder
+from model.seq2seq import Seq2Seq, Encoder, Decoder
 from preprocess.dataset import load_datasets
 
 random.seed(42)
@@ -24,7 +24,7 @@ def data():
 
 @pytest.fixture()
 def encoder():
-    model = TransformerEncoder(input_dim=INPUT_DIM,
+    model = Encoder(input_dim=INPUT_DIM,
                                hid_dim=HID_DIM,
                                n_layers=2,
                                n_heads=N_HEADS,
@@ -37,7 +37,7 @@ def encoder():
 
 @pytest.fixture()
 def decoder():
-    model = TransformerDecoder(output_dim=OUTPUT_DIM,
+    model = Decoder(output_dim=OUTPUT_DIM,
                                hid_dim=HID_DIM,
                                n_layers=2,
                                n_heads=N_HEADS,
@@ -50,7 +50,7 @@ def decoder():
 
 @pytest.fixture(scope='function')
 def seq2seq():
-    model = TransformerSeq2Seq(input_dim=INPUT_DIM,
+    model = Seq2Seq(input_dim=INPUT_DIM,
                                output_dim=OUTPUT_DIM,
                                hid_dim=14,
                                n_heads=7,

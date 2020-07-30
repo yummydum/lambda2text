@@ -112,7 +112,7 @@ def calculate_bleu(data,
     pred_trgs = []
 
     if trans_path is not None:
-        f = trans_path.open(mode='w')
+        f = trans_path.open(mode='w',encoding='utf-8')
 
     count = 0
     for datum in data:

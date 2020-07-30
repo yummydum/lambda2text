@@ -120,7 +120,9 @@ def init_model(args, src_field, trg_field):
                                    n_heads=7,
                                    n_layers=2,
                                    dropout=0.1,
-                                   device=DEVICE)
+                                   device=DEVICE,
+                                   pf_dim=512,
+                                   max_len=500)
     else:
         model = Seq2Seq(input_dim=len(src_field.vocab),
                                    output_dim=len(trg_field.vocab),
@@ -128,7 +130,9 @@ def init_model(args, src_field, trg_field):
                                    n_heads=args.n_heads,
                                    n_layers=args.n_layers,
                                    dropout=args.dropout,
-                                   device=DEVICE)
+                                   device=DEVICE,
+                                   pf_dim=512,
+                                   max_len=500)
 
     # Handle GPU
     gpu_num = torch.cuda.device_count()
@@ -184,7 +188,7 @@ def main():
         bleu = calculate_bleu(dev_data.dataset,
                               SRC,
                               TRG,
-                              model,
+                              model.module,
                               DEVICE,
                               trans_path=epoch_trans_path,
                               formula=args.de2en,
