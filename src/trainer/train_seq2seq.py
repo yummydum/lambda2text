@@ -8,14 +8,16 @@ from torch import nn
 import wandb
 
 from config import DATA_DIR
-from model.seq2seq import TransformerSeq2Seq
-from utils import get_optimzer, calculate_bleu
+from model.seq2seq import Seq2Seq
+from utils import calculate_bleu
 from preprocess.dataset import get_loader
+import torch.optim as optim
 
-random.seed(42)
-torch.manual_seed(42)
-np.random.seed(42)
-torch.cuda.manual_seed(42)
+random.seed(1234)
+torch.manual_seed(1234)
+np.random.seed(1234)
+torch.cuda.manual_seed(1234)
+torch.backends.cudnn.deterministic = True
 
 # Set device
 if torch.cuda.is_available():
@@ -33,28 +35,20 @@ def initialize_weights(m):
 
 
 def forward(model, data, criterion):
-    """
-    Format the data, forward, return the loss
-    """
     src = data.src[0]
     trg = data.trg[0]
 
-    # Replace eos to pad to cut off the eos token
-    trg_input = trg.clone()
-    trg_input[trg_input == 2] = 1
-    trg_input = trg_input[:, :-1]  # adjust length
-
     # Forward
-    output, _ = model(src, trg_input)
+    output, _ = model(src, trg[:,:-1])
 
     # Flatten output
     output_dim = output.shape[-1]  # Number of target tokens
     output = output.contiguous().view(-1, output_dim)
 
     # Make golden output
-    trg_output = trg[:, 1:].contiguous().view(-1).detach()
+    trg = trg[:, 1:].contiguous().view(-1)
 
-    return criterion(output, trg_output)
+    return criterion(output, trg)
 
 
 def train(args, model, dataset):
@@ -65,7 +59,8 @@ def train(args, model, dataset):
     model.train()
     epoch_loss = 0
     for data in dataset:
-        model.zero_grad()
+
+        args.optimizer.zero_grad()
 
         loss = forward(model, data, args.criterion)
 
@@ -75,6 +70,7 @@ def train(args, model, dataset):
 
         # Update param
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
         args.optimizer.step()
 
         epoch_loss += loss.item()
@@ -107,6 +103,7 @@ def evaluate(args, model, dataset):
                 return epoch_loss / 1
 
     result = epoch_loss / len(dataset)
+
     # Report the loss
     if not args.test_run:
         wandb.log({"eval_loss": result})
@@ -117,21 +114,25 @@ def evaluate(args, model, dataset):
 def init_model(args, src_field, trg_field):
     if args.test_run:
         # Small model for fast test
-        model = TransformerSeq2Seq(input_dim=len(src_field.vocab),
+        model = Seq2Seq(input_dim=len(src_field.vocab),
                                    output_dim=len(trg_field.vocab),
                                    hid_dim=14,
                                    n_heads=7,
                                    n_layers=2,
                                    dropout=0.1,
-                                   device=DEVICE.type)
+                                   device=DEVICE,
+                                   pf_dim=512,
+                                   max_len=500)
     else:
-        model = TransformerSeq2Seq(input_dim=len(src_field.vocab),
+        model = Seq2Seq(input_dim=len(src_field.vocab),
                                    output_dim=len(trg_field.vocab),
                                    hid_dim=args.hid_dim,
                                    n_heads=args.n_heads,
                                    n_layers=args.n_layers,
                                    dropout=args.dropout,
-                                   device=DEVICE.type)
+                                   device=DEVICE,
+                                   pf_dim=512,
+                                   max_len=500)
 
     # Handle GPU
     gpu_num = torch.cuda.device_count()
@@ -172,21 +173,22 @@ def main():
     args.criterion = nn.CrossEntropyLoss(ignore_index=1)
 
     # optimizers
-    args.optimizer = get_optimzer(model, args.lr, args.decay)
+    # args.optimizer = get_optimzer(model, args.lr, args.decay)
+    args.optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
 
     # Loop over epochs
     logging.info('Start training!')
     for epoch in range(args.epoch_num):
         logging.info(f'Now in {epoch}th epoch')
-        epoch_trans_path = DATA_DIR / f'translation_log_{epoch}.txt'
+        epoch_trans_path = DATA_DIR / 'translation' /f'translation_log_{args.de2en}_{epoch}.txt'
 
         # Train & eval
         train(args, model, train_data)
         evaluate(args, model, dev_data)
-        bleu = calculate_bleu(dev_data,
+        bleu = calculate_bleu(dev_data.dataset,
                               SRC,
                               TRG,
-                              model,
+                              model.module,
                               DEVICE,
                               trans_path=epoch_trans_path,
                               formula=args.de2en,
@@ -196,7 +198,7 @@ def main():
             # Only one epoch for test run
             break
         else:
-            wandb.log({"bleu": bleu})
+            wandb.log({"bleu": bleu*100})
             result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}_{epoch}.pt'
             logging.info(f'Saving model to {result_path}')
             torch.save(model, str(result_path))
@@ -212,12 +214,11 @@ def set_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--hid_dim', default=256, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
-    parser.add_argument('--lr', default=1e-4, type=float)
+    parser.add_argument('--lr', default=5e-4, type=float)
     parser.add_argument('--n_heads', default=8, type=int)
-    parser.add_argument('--n_layers', default=6, type=int)
+    parser.add_argument('--n_layers', default=3, type=int)
     parser.add_argument('--batch_size', default=128, type=int)
-    parser.add_argument('--epoch_num', default=30, type=int)
-    parser.add_argument('--decay', default=0.0, type=float)
+    parser.add_argument('--epoch_num', default=10, type=int)
     parser.add_argument('--test_run', action='store_true')
     parser.add_argument('--de2en', action='store_true')
     args = parser.parse_args()

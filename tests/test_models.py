@@ -2,7 +2,7 @@ import random
 import numpy as np
 import pytest
 import torch
-from model.seq2seq import TransformerSeq2Seq, TransformerEncoder, TransformerDecoder
+from model.seq2seq import Seq2Seq, Encoder, Decoder
 from preprocess.dataset import load_datasets
 
 random.seed(42)
@@ -24,37 +24,39 @@ def data():
 
 @pytest.fixture()
 def encoder():
-    model = TransformerEncoder(input_dim=INPUT_DIM,
+    model = Encoder(input_dim=INPUT_DIM,
                                hid_dim=HID_DIM,
                                n_layers=2,
                                n_heads=N_HEADS,
                                pf_dim=10,
                                dropout=0.5,
-                               device='cpu')
+                               device=torch.device('cpu'),
+                               max_len=100)
     return model
 
 
 @pytest.fixture()
 def decoder():
-    model = TransformerDecoder(output_dim=OUTPUT_DIM,
+    model = Decoder(output_dim=OUTPUT_DIM,
                                hid_dim=HID_DIM,
                                n_layers=2,
                                n_heads=N_HEADS,
                                pf_dim=10,
                                dropout=0.5,
-                               device='cpu')
+                               device=torch.device('cpu'),
+                               max_len=100)
     return model
 
 
 @pytest.fixture(scope='function')
 def seq2seq():
-    model = TransformerSeq2Seq(input_dim=INPUT_DIM,
+    model = Seq2Seq(input_dim=INPUT_DIM,
                                output_dim=OUTPUT_DIM,
                                hid_dim=14,
                                n_heads=7,
                                n_layers=2,
                                dropout=0.5,
-                               device='cpu')
+                               device=torch.device('cpu'))
     return model
 
 
@@ -84,14 +86,14 @@ def test_tok_embed(encoder):
     return
 
 
-def test_pos_embed(encoder):
-    batch_len = 2
-    sentence_len = 4
-    # 2 sentences
-    input_ids = torch.LongTensor([[4, 3, 9, 3], [4, 3, 2, 9]])
-    result = encoder.pos_embed(encoder.tok_embed(input_ids))
-    assert result.size() == (batch_len, sentence_len, HID_DIM)
-    return
+# def test_pos_embed(encoder):
+#     batch_len = 2
+#     sentence_len = 4
+#     # 2 sentences
+#     input_ids = torch.LongTensor([[4, 3, 9, 3], [4, 3, 2, 9]])
+#     result = encoder.pos_embed(encoder.tok_embed(input_ids))
+#     assert result.size() == (batch_len, sentence_len, HID_DIM)
+#     return
 
 
 def test_src_mask_with_pad(seq2seq):

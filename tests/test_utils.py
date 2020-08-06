@@ -1,5 +1,6 @@
 import pytest
-from model.seq2seq import TransformerSeq2Seq
+import torch
+from model.seq2seq import Seq2Seq
 from preprocess.dataset import load_datasets, SRC, TRG
 from trainer.train_seq2seq import DEVICE
 from utils import calculate_bleu, display_attention, tokenize_formal, translate_sentence
@@ -17,12 +18,12 @@ def dataset():
 
 @pytest.fixture
 def model():
-    model = TransformerSeq2Seq(input_dim=len(SRC.vocab),
+    model = Seq2Seq(input_dim=len(SRC.vocab),
                                output_dim=len(TRG.vocab),
                                hid_dim=16,
                                n_heads=1,
                                n_layers=2,
-                               device='cpu',
+                               device=torch.device('cpu'),
                                dropout=0.1)
     return model
 
@@ -43,7 +44,7 @@ def test_translate_sentence(dataset, model, formula):
 
 def test_calculate_blue(dataset, model, formula):
     train, dev, test = dataset
-    result = calculate_bleu(test, SRC, TRG, model, DEVICE)
+    result = calculate_bleu(test.dataset, SRC, TRG, model, DEVICE)
     assert isinstance(result, float)
     return
 

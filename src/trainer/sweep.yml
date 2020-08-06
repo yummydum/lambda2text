@@ -3,8 +3,8 @@ program: trainer/train_seq2seq.py
 method: bayes
 
 metric:
-  name: eval_loss
-  goal: minimize
+  name: bleu
+  goal: maximize
 
 early_terminate:
   type: hyperband
@@ -17,18 +17,15 @@ parameters:
   hid_dim:
     values: [256,512]
   batch_size:
-    values: [32]
+    values: [64,128]
   n_heads:
     values: [8]
   n_layers:
     min: 4
     max: 8
-  decay:
-    min: 0.0
-    max: 0.5
   dropout:
     min: 0.0
-    max: 0.8
+    max: 0.5
   epoch_num:
     min: 5
     max: 10
