@@ -180,7 +180,7 @@ def main():
     logging.info('Start training!')
     for epoch in range(args.epoch_num):
         logging.info(f'Now in {epoch}th epoch')
-        epoch_trans_path = DATA_DIR / f'translation_log_{args.de2en}_{epoch}.txt'
+        epoch_trans_path = DATA_DIR / 'translation' /f'translation_log_{args.de2en}_{epoch}.txt'
 
         # Train & eval
         train(args, model, train_data)

@@ -34,7 +34,7 @@ def main():
                 #     print(f'File exists but the length is {len(lines)}')
 
             logging.info(f'Now running {f_path}')
-            cmd = ['make', 'ccg2lambda', f'file={f_path.name}']
+            cmd = ['make', 'ccg2lambda', f'input_file=../data/mnli_split/{f_path.name}',f'output_file=../data/formal_split/{f_path.name}']
             # cmd = ['make', 'ccg2lambda', f'file={f_path.name}', f'gpu={len(process_list)}']
             process_list.append(subprocess.Popen(cmd, stdout=subprocess.PIPE))
 
