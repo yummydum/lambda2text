@@ -1,8 +1,25 @@
-import math
-from spacy.util import decaying
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
+
+class LSTMSeq2Seq(nn.Module):
+    def __init__(self, input_dim, output_dim, hid_dim, dropout, device,
+                 n_layers, max_len):
+        super(LSTMSeq2Seq, self).__init__()
+
+        # Settings
+        self.pad_idx = 1
+        self.device = device
+
+        self.tok_embed = nn.Embedding(input_dim, hid_dim)
+        self.encoder = nn.LSTM(hid_dim, hid_dim, n_layers, dropout=dropout)
+        self.decoder = nn.LSTM(hid_dim, output_dim)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self):
+        hidden = self.encoder()
+        output = self.decoder()
+        return
 
 
 class Seq2Seq(nn.Module):
@@ -26,21 +43,21 @@ class Seq2Seq(nn.Module):
         assert hid_dim % 2 == 0  # for positional encoder
 
         self.encoder = Encoder(input_dim=input_dim,
-                                          hid_dim=hid_dim,
-                                          n_layers=n_layers,
-                                          pf_dim=pf_dim,
-                                          dropout=dropout,
-                                          n_heads=n_heads,
-                                          device=self.device,
-                                          max_len=max_len)
+                               hid_dim=hid_dim,
+                               n_layers=n_layers,
+                               pf_dim=pf_dim,
+                               dropout=dropout,
+                               n_heads=n_heads,
+                               device=self.device,
+                               max_len=max_len)
         self.decoder = Decoder(output_dim=output_dim,
-                                          hid_dim=hid_dim,
-                                          n_layers=n_layers,
-                                          n_heads=n_heads,
-                                          pf_dim=pf_dim,
-                                          dropout=dropout,
-                                          device=self.device,
-                                          max_len=max_len)
+                               hid_dim=hid_dim,
+                               n_layers=n_layers,
+                               n_heads=n_heads,
+                               pf_dim=pf_dim,
+                               dropout=dropout,
+                               device=self.device,
+                               max_len=max_len)
 
     def make_src_mask(self, src):
         src_mask = (src != self.pad_idx).unsqueeze(1).unsqueeze(2)
@@ -67,8 +84,8 @@ class Seq2Seq(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,device,max_len
-                 ):
+    def __init__(self, input_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,
+                 device, max_len):
         super().__init__()
 
         assert n_layers > 0
@@ -78,7 +95,7 @@ class Encoder(nn.Module):
         self.pos_embedding = nn.Embedding(max_len, hid_dim)
 
         self.layers = nn.ModuleList([
-            EncoderLayer(hid_dim, n_heads, pf_dim, dropout,device)
+            EncoderLayer(hid_dim, n_heads, pf_dim, dropout, device)
             for _ in range(n_layers)
         ])
 
@@ -89,8 +106,10 @@ class Encoder(nn.Module):
         batch_size = src.size()[0]
         src_len = src.size()[1]
         scale = torch.sqrt(torch.FloatTensor([self.hid_dim])).to(src.device)
-        pos = torch.arange(0, src_len).unsqueeze(0).repeat(batch_size, 1).to(src.device)
-        x = self.dropout((self.tok_embed(src) * scale) + self.pos_embedding(pos))
+        pos = torch.arange(0, src_len).unsqueeze(0).repeat(batch_size,
+                                                           1).to(src.device)
+        x = self.dropout((self.tok_embed(src) * scale) +
+                         self.pos_embedding(pos))
 
         for layer in self.layers:
             x = layer(x, src_mask)
@@ -98,13 +117,13 @@ class Encoder(nn.Module):
 
 
 class EncoderLayer(nn.Module):
-    def __init__(self, hid_dim, n_heads, pf_dim, dropout,device):
+    def __init__(self, hid_dim, n_heads, pf_dim, dropout, device):
         super().__init__()
 
         self.self_attn_layer_norm = nn.LayerNorm(hid_dim)
         self.ff_layer_norm = nn.LayerNorm(hid_dim)
         self.self_attention = MultiHeadAttentionLayer(hid_dim, n_heads,
-                                                      dropout,device)
+                                                      dropout, device)
         self.positionwise_feedforward = PositionwiseFeedforwardLayer(
             hid_dim, pf_dim, dropout)
         self.dropout = nn.Dropout(dropout)
@@ -129,17 +148,17 @@ class EncoderLayer(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, output_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,device,max_len
-                 ):
+    def __init__(self, output_dim, hid_dim, n_layers, n_heads, pf_dim, dropout,
+                 device, max_len):
         super().__init__()
 
         assert n_layers > 0
 
         self.hid_dim = hid_dim
         self.tok_embed = nn.Embedding(output_dim, hid_dim)
-        self.pos_embedding = nn.Embedding(max_len, hid_dim)  
+        self.pos_embedding = nn.Embedding(max_len, hid_dim)
         self.layers = nn.ModuleList([
-            DecoderLayer(hid_dim, n_heads, pf_dim, dropout,device)
+            DecoderLayer(hid_dim, n_heads, pf_dim, dropout, device)
             for _ in range(n_layers)
         ])
 
@@ -153,9 +172,11 @@ class Decoder(nn.Module):
 
         batch_size = trg.shape[0]
         trg_len = trg.shape[1]
-        pos = torch.arange(0, trg_len).unsqueeze(0).repeat(batch_size, 1).to(self.device)
+        pos = torch.arange(0, trg_len).unsqueeze(0).repeat(batch_size,
+                                                           1).to(self.device)
         scale = torch.sqrt(torch.FloatTensor([self.hid_dim])).to(trg.device)
-        x = self.dropout((self.tok_embed(trg) * scale) + self.pos_embedding(pos))
+        x = self.dropout((self.tok_embed(trg) * scale) +
+                         self.pos_embedding(pos))
 
         for layer in self.layers:
             trg, attention = layer(x, enc_src, trg_mask, src_mask)
@@ -165,16 +186,16 @@ class Decoder(nn.Module):
 
 
 class DecoderLayer(nn.Module):
-    def __init__(self, hid_dim, n_heads, pf_dim, dropout,device):
+    def __init__(self, hid_dim, n_heads, pf_dim, dropout, device):
         super().__init__()
 
         self.self_attn_layer_norm = nn.LayerNorm(hid_dim)
         self.enc_attn_layer_norm = nn.LayerNorm(hid_dim)
         self.ff_layer_norm = nn.LayerNorm(hid_dim)
         self.self_attention = MultiHeadAttentionLayer(hid_dim, n_heads,
-                                                      dropout,device)
+                                                      dropout, device)
         self.encoder_attention = MultiHeadAttentionLayer(
-            hid_dim, n_heads, dropout,device)
+            hid_dim, n_heads, dropout, device)
         self.positionwise_feedforward = PositionwiseFeedforwardLayer(
             hid_dim, pf_dim, dropout)
         self.dropout = nn.Dropout(dropout)
@@ -211,7 +232,7 @@ class DecoderLayer(nn.Module):
 
 
 class MultiHeadAttentionLayer(nn.Module):
-    def __init__(self, hid_dim, n_heads, dropout,device):
+    def __init__(self, hid_dim, n_heads, dropout, device):
         super().__init__()
 
         assert hid_dim % n_heads == 0
@@ -237,10 +258,12 @@ class MultiHeadAttentionLayer(nn.Module):
         K = self.fc_k(key)
         V = self.fc_v(value)
 
-        Q = Q.view(batch_size, -1, self.n_heads, self.head_dim).permute(0, 2, 1, 3)
-        K = K.view(batch_size, -1, self.n_heads, self.head_dim).permute(0, 2, 1, 3)
-        V = V.view(batch_size, -1, self.n_heads, self.head_dim).permute(0, 2, 1, 3)
-
+        Q = Q.view(batch_size, -1, self.n_heads,
+                   self.head_dim).permute(0, 2, 1, 3)
+        K = K.view(batch_size, -1, self.n_heads,
+                   self.head_dim).permute(0, 2, 1, 3)
+        V = V.view(batch_size, -1, self.n_heads,
+                   self.head_dim).permute(0, 2, 1, 3)
 
         scale = torch.sqrt(torch.FloatTensor([self.head_dim])).to(query.device)
         energy = torch.matmul(Q, K.permute(0, 1, 3, 2)) / scale
@@ -268,5 +291,5 @@ class PositionwiseFeedforwardLayer(nn.Module):
 
     def forward(self, x):
         x = self.dropout(torch.relu(self.fc_1(x)))
-        x = self.fc_2(x)    
+        x = self.fc_2(x)
         return x

@@ -25,6 +25,7 @@ def main():
     process_list = []
     try:
         for f_path in tqdm(sorted(source_dir.iterdir())):
+
             t_path = result_dir / f_path.name
 
             # May skip if the result is already present
@@ -33,14 +34,19 @@ def main():
                 lines = result_path.read_text().split('\n')
                 if len(lines) == 401:
                     logging.info(
-                        f'Skip file {result_path} since result already exists')
+                        f'Skip {result_path} since result already exists')
                     continue
                 else:
-                    logging.info(f'File exists but the length is {len(lines)}')
+                    logging.info(
+                        f'{result_path} exists but the length is {len(lines)}')
+                    pass
+
+            breakpoint()
 
             logging.info(f'Now running {f_path}')
             cmd = ['make', 'ccg2lambda', f'src={f_path}', f'trg={t_path}']
-            # cmd = ['make', 'ccg2lambda', f'file={f_path.name}', f'gpu={len(process_list)}']
+            if args.gpu:
+                cmd += [f'gpu={len(process_list)}']
             process_list.append(subprocess.Popen(cmd, stdout=subprocess.PIPE))
 
             # Wait until all process finished
@@ -56,11 +62,12 @@ def main():
     return None
 
 
-def set_args(args_list=None):
+def set_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('data')
     parser.add_argument('job_num')
-    args = parser.parse_args(args_list)
+    parser.add_argument('--gpu', action='store_true')
+    args = parser.parse_args()
     return args
 
 

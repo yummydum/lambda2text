@@ -10,8 +10,7 @@ import wandb
 from config import DATA_DIR
 from model.seq2seq import Seq2Seq
 from utils import calculate_bleu
-from preprocess.dataset import get_loader
-import torch.optim as optim
+from preprocess.dataset import load_data
 
 random.seed(1234)
 torch.manual_seed(1234)
@@ -39,7 +38,7 @@ def forward(model, data, criterion):
     trg = data.trg[0]
 
     # Forward
-    output, _ = model(src, trg[:,:-1])
+    output, _ = model(src, trg[:, :-1])
 
     # Flatten output
     output_dim = output.shape[-1]  # Number of target tokens
@@ -115,24 +114,24 @@ def init_model(args, src_field, trg_field):
     if args.test_run:
         # Small model for fast test
         model = Seq2Seq(input_dim=len(src_field.vocab),
-                                   output_dim=len(trg_field.vocab),
-                                   hid_dim=14,
-                                   n_heads=7,
-                                   n_layers=2,
-                                   dropout=0.1,
-                                   device=DEVICE,
-                                   pf_dim=512,
-                                   max_len=500)
+                        output_dim=len(trg_field.vocab),
+                        hid_dim=14,
+                        n_heads=7,
+                        n_layers=2,
+                        dropout=0.1,
+                        device=DEVICE,
+                        pf_dim=512,
+                        max_len=500)
     else:
         model = Seq2Seq(input_dim=len(src_field.vocab),
-                                   output_dim=len(trg_field.vocab),
-                                   hid_dim=args.hid_dim,
-                                   n_heads=args.n_heads,
-                                   n_layers=args.n_layers,
-                                   dropout=args.dropout,
-                                   device=DEVICE,
-                                   pf_dim=512,
-                                   max_len=500)
+                        output_dim=len(trg_field.vocab),
+                        hid_dim=args.hid_dim,
+                        n_heads=args.n_heads,
+                        n_layers=args.n_layers,
+                        dropout=args.dropout,
+                        device=DEVICE,
+                        pf_dim=512,
+                        max_len=500)
 
     # Handle GPU
     gpu_num = torch.cuda.device_count()
@@ -152,12 +151,13 @@ def main():
     args = set_args()
 
     logging.info('Now loading datasets...')
-    loader, SRC, TRG = get_loader(not args.de2en)
-    train_data, dev_data, test_data = loader(
+    data, SRC, TRG = load_data(
+        args.data,
         args.batch_size,
         DEVICE,
         test_mode=args.test_run,
     )
+    train_data, dev_data, test_data = data
 
     logging.info(f'Now initializing model with args {args}')
     model = init_model(args, SRC, TRG)
@@ -173,14 +173,13 @@ def main():
     args.criterion = nn.CrossEntropyLoss(ignore_index=1)
 
     # optimizers
-    # args.optimizer = get_optimzer(model, args.lr, args.decay)
-    args.optimizer = torch.optim.Adam(model.parameters(), lr = args.lr)
+    args.optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     # Loop over epochs
     logging.info('Start training!')
     for epoch in range(args.epoch_num):
         logging.info(f'Now in {epoch}th epoch')
-        epoch_trans_path = DATA_DIR / 'translation' /f'translation_log_{args.de2en}_{epoch}.txt'
+        epoch_trans_path = DATA_DIR / 'translation' / f'translation_log_{args.de2en}_{epoch}.txt'
 
         # Train & eval
         train(args, model, train_data)
@@ -188,7 +187,7 @@ def main():
         bleu = calculate_bleu(dev_data.dataset,
                               SRC,
                               TRG,
-                              model.module,
+                              model,
                               DEVICE,
                               trans_path=epoch_trans_path,
                               formula=args.de2en,
@@ -198,7 +197,7 @@ def main():
             # Only one epoch for test run
             break
         else:
-            wandb.log({"bleu": bleu*100})
+            wandb.log({"bleu": bleu * 100})
             result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}_{epoch}.pt'
             logging.info(f'Saving model to {result_path}')
             torch.save(model, str(result_path))
@@ -212,6 +211,7 @@ def main():
 
 def set_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--data', default='mnli')
     parser.add_argument('--hid_dim', default=256, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--lr', default=5e-4, type=float)

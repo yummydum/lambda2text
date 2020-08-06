@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 import torch
 from model.seq2seq import Seq2Seq, Encoder, Decoder
-from preprocess.dataset import load_datasets
+from preprocess.dataset import load_data
 
 random.seed(42)
 torch.manual_seed(42)
@@ -18,45 +18,45 @@ HID_DIM = 14
 
 @pytest.fixture(scope='module')
 def data():
-    data = load_datasets(5, 'cpu',test_mode=True)
+    data, SRC, TRG = load_data('mnli', 5, 'cpu', test_mode=True)
     return data
 
 
 @pytest.fixture()
 def encoder():
     model = Encoder(input_dim=INPUT_DIM,
-                               hid_dim=HID_DIM,
-                               n_layers=2,
-                               n_heads=N_HEADS,
-                               pf_dim=10,
-                               dropout=0.5,
-                               device=torch.device('cpu'),
-                               max_len=100)
+                    hid_dim=HID_DIM,
+                    n_layers=2,
+                    n_heads=N_HEADS,
+                    pf_dim=10,
+                    dropout=0.5,
+                    device=torch.device('cpu'),
+                    max_len=100)
     return model
 
 
 @pytest.fixture()
 def decoder():
     model = Decoder(output_dim=OUTPUT_DIM,
-                               hid_dim=HID_DIM,
-                               n_layers=2,
-                               n_heads=N_HEADS,
-                               pf_dim=10,
-                               dropout=0.5,
-                               device=torch.device('cpu'),
-                               max_len=100)
+                    hid_dim=HID_DIM,
+                    n_layers=2,
+                    n_heads=N_HEADS,
+                    pf_dim=10,
+                    dropout=0.5,
+                    device=torch.device('cpu'),
+                    max_len=100)
     return model
 
 
 @pytest.fixture(scope='function')
 def seq2seq():
     model = Seq2Seq(input_dim=INPUT_DIM,
-                               output_dim=OUTPUT_DIM,
-                               hid_dim=14,
-                               n_heads=7,
-                               n_layers=2,
-                               dropout=0.5,
-                               device=torch.device('cpu'))
+                    output_dim=OUTPUT_DIM,
+                    hid_dim=14,
+                    n_heads=7,
+                    n_layers=2,
+                    dropout=0.5,
+                    device=torch.device('cpu'))
     return model
 
 

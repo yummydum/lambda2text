@@ -1,30 +1,33 @@
 import pytest
 import torch
 from model.seq2seq import Seq2Seq
-from preprocess.dataset import load_datasets, SRC, TRG
+from preprocess.dataset import load_data
 from trainer.train_seq2seq import DEVICE
 from utils import calculate_bleu, display_attention, tokenize_formal, translate_sentence
 
 
 @pytest.fixture
 def formula():
-    return 'exists x0 . ( order ( x0 ) & exists x1 . ( emission ( x1 ) & exists e0 . ( reduce ( e0 ) & ( Subj ( e0 ) = x0 ) & ( Acc ( e0 ) = x1 ) ) ) & exists x2 . ( technology ( x2 ) & control ( x2 ) & exists e1 . ( instal ( e1 ) & ( Subj ( e1 ) = x0 ) & ( Acc ( e1 ) = x2 ) ) ) & exists x3 . ( resources_DOT ( x3 ) & exists e2 . ( require ( e2 ) & ( Dat ( e2 ) = x0 ) & ( Acc ( e2 ) = x3 ) ) ) )	There is an upward leaping orchestral figure.'
+    return 'exists x0 . ( order ( x0 ) 	There is an order.'
 
 
 @pytest.fixture
 def dataset():
-    return load_datasets(5, 'cpu', test_mode=True)
+    data, SRC, TRG = load_data('mnli', 5, 'cpu', test_mode=True)
+    return data, SRC, TRG
 
 
 @pytest.fixture
-def model():
+def model(dataset):
+    SRC = dataset[1]
+    TRG = dataset[2]
     model = Seq2Seq(input_dim=len(SRC.vocab),
-                               output_dim=len(TRG.vocab),
-                               hid_dim=16,
-                               n_heads=1,
-                               n_layers=2,
-                               device=torch.device('cpu'),
-                               dropout=0.1)
+                    output_dim=len(TRG.vocab),
+                    hid_dim=16,
+                    n_heads=1,
+                    n_layers=2,
+                    device=torch.device('cpu'),
+                    dropout=0.1)
     return model
 
 
@@ -36,6 +39,8 @@ def test_tokenize_formal(formula):
 
 
 def test_translate_sentence(dataset, model, formula):
+    SRC = dataset[1]
+    TRG = dataset[2]
     result, attention = translate_sentence(formula, SRC, TRG, model, 'cpu')
     assert attention.size()[2] == len(result)
     assert attention.size()[3] == len(tokenize_formal(formula)) + 2
@@ -43,7 +48,9 @@ def test_translate_sentence(dataset, model, formula):
 
 
 def test_calculate_blue(dataset, model, formula):
-    train, dev, test = dataset
+    SRC = dataset[1]
+    TRG = dataset[2]
+    train, dev, test = dataset[0]
     result = calculate_bleu(test.dataset, SRC, TRG, model, DEVICE)
     assert isinstance(result, float)
     return
@@ -51,6 +58,8 @@ def test_calculate_blue(dataset, model, formula):
 
 @pytest.mark.skip
 def test_display_attention(dataset, model, formula):
+    SRC = dataset[1]
+    TRG = dataset[2]
     translation, attention = translate_sentence(formula, SRC, TRG, model,
                                                 'cpu')
     display_attention(tokenize_formal(formula),

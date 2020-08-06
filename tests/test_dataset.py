@@ -1,15 +1,15 @@
 import pytest
-from preprocess.dataset import load_datasets, SRC, TRG
+from preprocess.dataset import load_data
 
 
 @pytest.fixture(scope='module')
 def data():
-    train, dev, test = load_datasets(5, 'cpu', test_mode=True)
-    return train, dev, test
+    data, SRC, TRG = load_data('mnli', 5, 'cpu', test_mode=True)
+    return data, SRC, TRG
 
 
 def test_splits(data):
-    train, dev, test = data
+    train, dev, test = data[0]
 
     # Number of batches
     assert (len(dev) * 8) - 10 <= len(train)
@@ -23,6 +23,9 @@ def test_splits(data):
 
 
 def test_fields(data):
+
+    SRC = data[1]
+    TRG = data[2]
 
     # Should have been built
     assert hasattr(SRC, 'vocab')
@@ -48,7 +51,7 @@ def test_fields(data):
 
 
 def test_batch(data):
-    batch = next(iter(data[0]))
+    batch = next(iter(data[0][0]))
     formal, formal_len = batch.src
     text, text_len = batch.trg
 
@@ -60,7 +63,7 @@ def test_batch(data):
 
 
 def test_padding(data):
-    batch = next(iter(data[0]))
+    batch = next(iter(data[0][0]))
     formal, formal_len = batch.src
     text, text_len = batch.trg
 
@@ -79,7 +82,9 @@ def test_padding(data):
     return
 
 
-def test_vocab_num():
+def test_vocab_num(data):
+    SRC = data[1]
+    TRG = data[2]
     assert len(SRC.vocab) <= 20000  # small freq filtered, thus less than 20000
     assert len(TRG.vocab) <= 20000
     return

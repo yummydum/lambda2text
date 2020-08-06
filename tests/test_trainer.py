@@ -1,8 +1,7 @@
 from types import SimpleNamespace
 import pytest
-from torch.serialization import load
 import trainer.train_seq2seq as target
-from preprocess.dataset import get_loader
+from preprocess.dataset import load_data
 
 
 @pytest.fixture
@@ -15,8 +14,7 @@ def mock_arg():
 
 
 def test_init_model(mock_arg):
-    loader, SRC, TRG = get_loader(is_formal=True)
-    data = loader(5, 'cpu', test_mode=True)  # Run for vocab construction
+    data, SRC, TRG = load_data('mnli', 5, 'cpu', test_mode=True)
     target.init_model(mock_arg, SRC, TRG)
     return
 

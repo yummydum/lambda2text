@@ -108,11 +108,14 @@ def calculate_bleu(data,
                    formula=True,
                    limit=None):
 
+    if isinstance(model, torch.nn.DataParallel):
+        model = model.module
+
     trgs = []
     pred_trgs = []
 
     if trans_path is not None:
-        f = trans_path.open(mode='w',encoding='utf-8')
+        f = trans_path.open(mode='w', encoding='utf-8')
 
     count = 0
     for datum in data:
