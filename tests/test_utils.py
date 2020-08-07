@@ -1,6 +1,6 @@
 import pytest
 import torch
-from model.seq2seq import Seq2Seq
+from model.transformer_seq2seq import Seq2Seq
 from preprocess.dataset import load_data
 from trainer.train_seq2seq import DEVICE
 from utils import calculate_bleu, display_attention, tokenize_formal, translate_sentence
@@ -46,7 +46,7 @@ def test_translate_sentence(dataset, model, formula):
     assert attention.size()[3] == len(tokenize_formal(formula)) + 2
     return
 
-
+@pytest.mark.skip(reason='cpu is not supported now')
 def test_calculate_blue(dataset, model, formula):
     SRC = dataset[1]
     TRG = dataset[2]

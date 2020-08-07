@@ -1,4 +1,4 @@
-program: trainer/train_seq2seq.py  
+program: trainer/train_seq2seq.py
 
 method: bayes
 
@@ -27,5 +27,5 @@ parameters:
     min: 0.0
     max: 0.5
   epoch_num:
-    min: 5
+    min: 3
     max: 10

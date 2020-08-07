@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter('ignore')  # transformers apex warning too verbose
+
 import argparse
 import os
 import signal
@@ -25,6 +28,10 @@ def main():
     process_list = []
     try:
         for f_path in tqdm(sorted(source_dir.iterdir())):
+            
+            # This should not happen
+            if len(process_list) > args.job_num:
+                raise ValueError('Process more than specified')
 
             t_path = result_dir / f_path.name
 
@@ -41,13 +48,13 @@ def main():
                         f'{result_path} exists but the length is {len(lines)}')
                     pass
 
-            breakpoint()
 
             logging.info(f'Now running {f_path}')
             cmd = ['make', 'ccg2lambda', f'src={f_path}', f'trg={t_path}']
             if args.gpu:
                 cmd += [f'gpu={len(process_list)}']
             process_list.append(subprocess.Popen(cmd, stdout=subprocess.PIPE))
+
 
             # Wait until all process finished
             while len(process_list) == args.job_num:
@@ -65,7 +72,7 @@ def main():
 def set_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('data')
-    parser.add_argument('job_num')
+    parser.add_argument('job_num',type=int)
     parser.add_argument('--gpu', action='store_true')
     args = parser.parse_args()
     return args

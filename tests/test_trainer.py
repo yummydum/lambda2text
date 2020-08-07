@@ -6,7 +6,7 @@ from preprocess.dataset import load_data
 
 @pytest.fixture
 def mock_arg():
-    return SimpleNamespace(test_run=False,
+    return SimpleNamespace(data='snli',model='lstm',test_run=False,
                            hid_dim=10,
                            n_heads=2,
                            n_layers=3,
@@ -18,13 +18,15 @@ def test_init_model(mock_arg):
     target.init_model(mock_arg, SRC, TRG)
     return
 
+@pytest.mark.parametrize('data',['snli','mnli'])
+@pytest.mark.parametrize('model',['transformer','lstm'])
+def test_main(data,model,mock_arg, monkeypatch):
+    monkeypatch.setattr("sys.argv", ["train_seq2seq.py",data,model, "--test_run"])
+    assert target.main() == 0
 
-def test_main(mock_arg, monkeypatch):
-    monkeypatch.setattr("sys.argv", ["train_seq2seq.py", "--test_run"])
+@pytest.mark.skip(reason='very slow')
+def test_m30k(mock_arg, monkeypatch):
+    monkeypatch.setattr("sys.argv", ["train_seq2seq.py",'m30k','lstm', "--test_run"])
     assert target.main() == 0
 
 
-def test_main_de2en(mock_arg, monkeypatch):
-    monkeypatch.setattr("sys.argv",
-                        ["train_seq2seq.py", "--test_run", "--de2en"])
-    assert target.main() == 0

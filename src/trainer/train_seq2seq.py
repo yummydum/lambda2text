@@ -8,7 +8,7 @@ from torch import nn
 import wandb
 
 from config import DATA_DIR
-from model.seq2seq import Seq2Seq
+from model import transformer_seq2seq, lstm_seq2seq
 from utils import calculate_bleu
 from preprocess.dataset import load_data
 
@@ -34,21 +34,37 @@ def initialize_weights(m):
 
 
 def forward(model, data, criterion):
-    src = data.src[0]
-    trg = data.trg[0]
+    if model.name == 'transformer':
 
-    # Forward
-    output, _ = model(src, trg[:, :-1])
+        src = data.src[0]
+        trg = data.trg[0]
 
-    # Flatten output
-    output_dim = output.shape[-1]  # Number of target tokens
-    output = output.contiguous().view(-1, output_dim)
+        # Forward
+        output, _ = model(src, trg[:, :-1])
 
-    # Make golden output
-    trg = trg[:, 1:].contiguous().view(-1)
+        # Flatten output
+        output_dim = output.shape[-1]  # Number of target tokens
+        output = output.contiguous().view(-1, output_dim)
 
-    return criterion(output, trg)
+        # Make golden output
+        trg = trg[:, 1:].contiguous().view(-1)
+        return criterion(output, trg)
+    
+    elif model.name == 'lstm':
+        src,src_len = data.src
+        trg = data.trg[0]
 
+        # Forward
+        output = model(src, src_len, trg)
+
+        # Reshape
+        output_dim = output.shape[-1]        
+        output = output[1:].view(-1, output_dim)
+
+        # Make golden output
+        trg = trg.transpose(0,1)[1:].contiguous().view(-1)
+
+        return criterion(output, trg)
 
 def train(args, model, dataset):
     """
@@ -111,27 +127,42 @@ def evaluate(args, model, dataset):
 
 
 def init_model(args, src_field, trg_field):
+    input_dim = len(src_field.vocab)
+    output_dim = len(trg_field.vocab)
     if args.test_run:
         # Small model for fast test
-        model = Seq2Seq(input_dim=len(src_field.vocab),
-                        output_dim=len(trg_field.vocab),
-                        hid_dim=14,
-                        n_heads=7,
-                        n_layers=2,
-                        dropout=0.1,
-                        device=DEVICE,
-                        pf_dim=512,
-                        max_len=500)
+
+        if args.model == 'transformer':
+            model = transformer_seq2seq.Seq2Seq(input_dim=input_dim,
+                            output_dim=output_dim,
+                            hid_dim=14,
+                            n_heads=7,
+                            n_layers=2,
+                            dropout=0.1,
+                            device=DEVICE,
+                            pf_dim=512,
+                            max_len=1000)
+        
+        elif args.model == 'lstm':
+            model = lstm_seq2seq.Seq2Seq(input_dim=input_dim,
+            output_dim=output_dim,
+            hid_dim = 14,dropout=0.1,device=DEVICE)
+
     else:
-        model = Seq2Seq(input_dim=len(src_field.vocab),
-                        output_dim=len(trg_field.vocab),
-                        hid_dim=args.hid_dim,
-                        n_heads=args.n_heads,
-                        n_layers=args.n_layers,
-                        dropout=args.dropout,
-                        device=DEVICE,
-                        pf_dim=512,
-                        max_len=500)
+        if args.model == 'transformer':
+            model = transformer_seq2seq.Seq2Seq(input_dim=len(src_field.vocab),
+                            output_dim=len(trg_field.vocab),
+                            hid_dim=args.hid_dim,
+                            n_heads=args.n_heads,
+                            n_layers=args.n_layers,
+                            dropout=args.dropout,
+                            device=DEVICE,
+                            pf_dim=512,
+                            max_len=1000)
+        elif args.model == 'lstm':
+            model = lstm_seq2seq.Seq2Seq(input_dim=input_dim,
+            output_dim=output_dim,
+            hid_dim = args.hid_dim,dropout=0.1,device=DEVICE)
 
     # Handle GPU
     gpu_num = torch.cuda.device_count()
@@ -179,39 +210,41 @@ def main():
     logging.info('Start training!')
     for epoch in range(args.epoch_num):
         logging.info(f'Now in {epoch}th epoch')
-        epoch_trans_path = DATA_DIR / 'translation' / f'translation_log_{args.de2en}_{epoch}.txt'
+        epoch_trans_path = DATA_DIR / 'translation' / f'translation_log_{args.data}_{args.model}.txt'
 
         # Train & eval
         train(args, model, train_data)
         evaluate(args, model, dev_data)
-        bleu = calculate_bleu(dev_data.dataset,
-                              SRC,
-                              TRG,
-                              model,
-                              DEVICE,
-                              trans_path=epoch_trans_path,
-                              formula=args.de2en,
-                              limit=1000)
 
         if args.test_run:
             # Only one epoch for test run
             break
         else:
-            wandb.log({"bleu": bleu * 100})
             result_path = DATA_DIR / 'trained_model' / f'{wandb.run.name}_{epoch}.pt'
             logging.info(f'Saving model to {result_path}')
             torch.save(model, str(result_path))
 
     logging.info('Finish process')
     test_loss = evaluate(args, model, test_data)
+    bleu = calculate_bleu(dev_data.dataset,
+                        SRC,
+                        TRG,
+                        model,
+                        DEVICE,
+                        trans_path=epoch_trans_path,
+                        formula=args.formula,
+                        limit=1000)
+
     if not args.test_run:
         wandb.log({"test_loss": test_loss})
+        wandb.log({"bleu": bleu * 100})
     return 0
 
 
 def set_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data', default='mnli')
+    parser.add_argument('data', choices=['snli','mnli','m30k'])
+    parser.add_argument('model', choices=['transformer','lstm'])
     parser.add_argument('--hid_dim', default=256, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--lr', default=5e-4, type=float)
@@ -220,8 +253,8 @@ def set_args():
     parser.add_argument('--batch_size', default=128, type=int)
     parser.add_argument('--epoch_num', default=10, type=int)
     parser.add_argument('--test_run', action='store_true')
-    parser.add_argument('--de2en', action='store_true')
     args = parser.parse_args()
+    args.formula = args.data in {'snli','mnli'}
     return args
 
 

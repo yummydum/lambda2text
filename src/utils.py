@@ -21,29 +21,6 @@ def tokenize_text(line):
     return result
 
 
-def translation_example(data, model, src_field, trg_field, device):
-    for i, example in enumerate(data):
-
-        print('Original sentence is:')
-        original = example.text[0].squeeze().tolist()
-        original = ' '.join([src_field.vocab.itos[x] for x in original][1:-1])
-        print(original)
-
-        print('Formal representation is:')
-        formula = example.formal[0].squeeze().tolist()
-        formula = ' '.join([trg_field.vocab.itos[x] for x in formula][1:-1])
-        print(formula)
-
-        print('Translation result is:')
-        result, _ = translate_sentence(formula, trg_field, src_field, model,
-                                       device)
-        print(result)
-
-        if i == 10:
-            break
-    return
-
-
 def translate_sentence(src,
                        src_field,
                        trg_field,
@@ -52,11 +29,14 @@ def translate_sentence(src,
                        max_len=50,
                        formula=True):
 
+    if isinstance(model,torch.nn.DataParallel):
+        model = model.module
     model.eval()
-
+ 
+    assert hasattr(model,'name') and model.name in {'transformer','lstm'}
     assert hasattr(src_field, 'vocab'), 'build vocab first!'
 
-    # Tokenize
+    # Tokenize if not tokenized
     if isinstance(src, str):
         if formula:
             tokens = tokenize_formal(src)
@@ -69,34 +49,71 @@ def translate_sentence(src,
 
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
     src_indexes = [src_field.vocab.stoi[token] for token in tokens]
-    src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
-    src_mask = model.make_src_mask(src_tensor)
-    with torch.no_grad():
-        enc_src = model.encoder(src_tensor, src_mask)
 
-    # Decode step by step
-    trg_indexes = [trg_field.vocab.stoi[trg_field.init_token]]
-    for _ in range(max_len):
-
-        # Decoder forward
-        trg_tensor = torch.LongTensor(trg_indexes).unsqueeze(0).to(device)
-        trg_mask = model.make_trg_mask(trg_tensor)
+    if model.name == 'transformer':
+        src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
+        src_mask = model.make_src_mask(src_tensor)
         with torch.no_grad():
-            output, attention = model.decoder(trg_tensor, enc_src, trg_mask,
-                                              src_mask)
+            enc_src = model.encoder(src_tensor, src_mask)
 
-        # max logit for the last element
-        pred_token = output.argmax(2)[:, -1].item()
-        trg_indexes.append(pred_token)
+        # Decode step by step
+        trg_indexes = [trg_field.vocab.stoi[trg_field.init_token]]
+        for _ in range(max_len):
 
-        # Break if end of sentence pridicted
-        if pred_token == trg_field.vocab.stoi[trg_field.eos_token]:
-            break
+            # Decoder forward
+            trg_tensor = torch.LongTensor(trg_indexes).unsqueeze(0).to(device)
+            trg_mask = model.make_trg_mask(trg_tensor)
+            with torch.no_grad():
+                output, attention = model.decoder(trg_tensor, enc_src, trg_mask,
+                                                src_mask)
 
-    # Convert to tokens
-    trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
-    return trg_tokens[1:], attention
+            # max logit for the last element
+            pred_token = output.argmax(2)[:, -1].item()
+            trg_indexes.append(pred_token)
 
+            # Break if end of sentence pridicted
+            if pred_token == trg_field.vocab.stoi[trg_field.eos_token]:
+                break
+
+        # Convert to tokens
+        trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
+        return trg_tokens[1:], attention
+
+    elif model.name == 'lstm':
+        src_tensor = torch.LongTensor(src_indexes).unsqueeze(1).to(device)
+        src_len = torch.LongTensor([len(src_indexes)]).to(device)
+        
+        with torch.no_grad():
+            encoder_outputs,hidden,cell  = model.encoder(src_tensor, src_len)
+
+        mask = model.create_mask(src_tensor)
+            
+        trg_indexes = [trg_field.vocab.stoi[trg_field.init_token]]
+
+        attentions = torch.zeros(max_len, 1, len(src_indexes)).to(device)
+        
+        for i in range(max_len):
+
+            trg_tensor = torch.LongTensor([trg_indexes[-1]]).to(device)
+                    
+            with torch.no_grad():
+                output, hidden, cell, attention = model.decoder(trg_tensor, hidden,cell, encoder_outputs, mask)
+
+            attentions[i] = attention
+                
+            pred_token = output.argmax(1).item()
+            
+            trg_indexes.append(pred_token)
+
+            if pred_token == trg_field.vocab.stoi[trg_field.eos_token]:
+                break
+        
+        trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
+        
+        return trg_tokens[1:], attentions[:len(trg_tokens)-1]        
+
+    else:
+        raise ValueError(f'model name {model.name} it not supported')
 
 def calculate_bleu(data,
                    src_field,
@@ -107,9 +124,6 @@ def calculate_bleu(data,
                    trans_path=None,
                    formula=True,
                    limit=None):
-
-    if isinstance(model, torch.nn.DataParallel):
-        model = model.module
 
     trgs = []
     pred_trgs = []

@@ -2,26 +2,6 @@ import torch
 import torch.nn as nn
 
 
-class LSTMSeq2Seq(nn.Module):
-    def __init__(self, input_dim, output_dim, hid_dim, dropout, device,
-                 n_layers, max_len):
-        super(LSTMSeq2Seq, self).__init__()
-
-        # Settings
-        self.pad_idx = 1
-        self.device = device
-
-        self.tok_embed = nn.Embedding(input_dim, hid_dim)
-        self.encoder = nn.LSTM(hid_dim, hid_dim, n_layers, dropout=dropout)
-        self.decoder = nn.LSTM(hid_dim, output_dim)
-        self.drop = nn.Dropout(dropout)
-
-    def forward(self):
-        hidden = self.encoder()
-        output = self.decoder()
-        return
-
-
 class Seq2Seq(nn.Module):
     def __init__(
             self,
@@ -37,6 +17,7 @@ class Seq2Seq(nn.Module):
         super(Seq2Seq, self).__init__()
 
         # Settings
+        self.name = 'transformer'
         self.pad_idx = 1
         self.device = device
 

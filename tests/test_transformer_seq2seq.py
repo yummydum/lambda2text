@@ -2,7 +2,7 @@ import random
 import numpy as np
 import pytest
 import torch
-from model.seq2seq import Seq2Seq, Encoder, Decoder
+from model.transformer_seq2seq import Seq2Seq, Encoder, Decoder
 from preprocess.dataset import load_data
 
 random.seed(42)

@@ -104,13 +104,6 @@ def main():
 
             if count > 100:
                 break
-    # Additional interactive session
-    # print('You can type something now')
-    # while True:
-    #     src = input()
-    #     result,_ = translate_sentence(src, SRC, TRG, model, DEVICE)
-    #     print(result)
-
     return
 
 

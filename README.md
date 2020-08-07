@@ -43,6 +43,4 @@ make run gpu=0,1 id=<sweep_id>
 ```
 
 # Reference
-
-- https://github.com/Amazing-J/structural-transformer
-- https://github.com/yaushian/Tree-Transformer
+- https://github.com/bentrevett/pytorch-seq2seq
