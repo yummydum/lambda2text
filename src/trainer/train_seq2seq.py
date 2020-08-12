@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 import torch
-from torch import nn
+from torch import dropout, nn
 import wandb
 
 from config import DATA_DIR
@@ -185,14 +185,14 @@ def init_model(args, src_field, trg_field):
             model = lstm_seq2seq.Seq2Seq(input_dim=input_dim,
                                          output_dim=output_dim,
                                          hid_dim=args.hid_dim,
-                                         dropout=0.1,
+                                         dropout=args.dropout,
                                          device=DEVICE)
 
         elif args.model == 'gru':
             model = gru_seq2seq.Seq2Seq(input_dim=input_dim,
                                         output_dim=output_dim,
                                         hid_dim=args.hid_dim,
-                                        dropout=0.1,
+                                        dropout=args.dropout,
                                         device=DEVICE)
 
     # Handle GPU
