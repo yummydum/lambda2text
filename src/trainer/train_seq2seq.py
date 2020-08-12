@@ -55,9 +55,15 @@ def forward(model, data, criterion):
         # Make golden output
         trg = trg[:, 1:].contiguous().view(-1)
         return criterion(output, trg)
+<<<<<<< HEAD
     
     elif name in {'lstm','gru'}:
         src,src_len = data.src
+=======
+
+    elif model.name == 'lstm':
+        src, src_len = data.src
+>>>>>>> 8827df35f25b62e0be55d735a2ca43f6d788ce6b
         trg = data.trg[0]
 
         # Forward
@@ -66,16 +72,22 @@ def forward(model, data, criterion):
         output = model(src, src_len, trg)
 
         # Reshape
-        output_dim = output.shape[-1]        
+        output_dim = output.shape[-1]
         output = output[1:].view(-1, output_dim)
 
         # Make golden output
+<<<<<<< HEAD
         trg = trg[1:].contiguous().view(-1)
     
+=======
+        trg = trg.transpose(0, 1)[1:].contiguous().view(-1)
+
+>>>>>>> 8827df35f25b62e0be55d735a2ca43f6d788ce6b
         return criterion(output, trg)
     
     else:
         raise ValueErorr('Choose transformer or lstm')
+
 
 def train(args, model, dataset):
     """
@@ -145,19 +157,21 @@ def init_model(args, src_field, trg_field):
 
         if args.model == 'transformer':
             model = transformer_seq2seq.Seq2Seq(input_dim=input_dim,
-                            output_dim=output_dim,
-                            hid_dim=14,
-                            n_heads=7,
-                            n_layers=2,
-                            dropout=0.1,
-                            device=DEVICE,
-                            pf_dim=512,
-                            max_len=1000)
-        
+                                                output_dim=output_dim,
+                                                hid_dim=14,
+                                                n_heads=7,
+                                                n_layers=2,
+                                                dropout=0.1,
+                                                device=DEVICE,
+                                                pf_dim=512,
+                                                max_len=1000)
+
         elif args.model == 'lstm':
             model = lstm_seq2seq.Seq2Seq(input_dim=input_dim,
-            output_dim=output_dim,
-            hid_dim = 14,dropout=0.1,device=DEVICE)
+                                         output_dim=output_dim,
+                                         hid_dim=14,
+                                         dropout=0.1,
+                                         device=DEVICE)
 
         elif args.model == 'gru':
             model = gru_seq2seq.Seq2Seq(input_dim=input_dim,
@@ -168,18 +182,21 @@ def init_model(args, src_field, trg_field):
     else:
         if args.model == 'transformer':
             model = transformer_seq2seq.Seq2Seq(input_dim=len(src_field.vocab),
-                            output_dim=len(trg_field.vocab),
-                            hid_dim=args.hid_dim,
-                            n_heads=args.n_heads,
-                            n_layers=args.n_layers,
-                            dropout=args.dropout,
-                            device=DEVICE,
-                            pf_dim=512,
-                            max_len=1000)
+                                                output_dim=len(
+                                                    trg_field.vocab),
+                                                hid_dim=args.hid_dim,
+                                                n_heads=args.n_heads,
+                                                n_layers=args.n_layers,
+                                                dropout=args.dropout,
+                                                device=DEVICE,
+                                                pf_dim=512,
+                                                max_len=1000)
         elif args.model == 'lstm':
             model = lstm_seq2seq.Seq2Seq(input_dim=input_dim,
-            output_dim=output_dim,
-            hid_dim = args.hid_dim,dropout=0.1,device=DEVICE)
+                                         output_dim=output_dim,
+                                         hid_dim=args.hid_dim,
+                                         dropout=0.1,
+                                         device=DEVICE)
 
         elif args.model == 'gru':
             model = gru_seq2seq.Seq2Seq(input_dim=input_dim,
@@ -251,12 +268,22 @@ def main():
     logging.info('Finish process')
     test_loss = evaluate(args, model, test_data)
     bleu = calculate_bleu(dev_data.dataset,
+<<<<<<< HEAD
                         SRC,
                         TRG,
                         model,
                         DEVICE,
                         trans_path=epoch_trans_path,
                         formula=args.formula)
+=======
+                          SRC,
+                          TRG,
+                          model,
+                          DEVICE,
+                          trans_path=epoch_trans_path,
+                          formula=args.formula,
+                          limit=1000)
+>>>>>>> 8827df35f25b62e0be55d735a2ca43f6d788ce6b
 
     if not args.test_run:
         wandb.log({"test_loss": test_loss})
@@ -266,8 +293,17 @@ def main():
 
 def set_args():
     parser = argparse.ArgumentParser()
+<<<<<<< HEAD
     parser.add_argument('data', choices=['snli','mnli','m30k'])
     parser.add_argument('model', choices=['transformer','lstm','gru'])
+=======
+    parser.add_argument('data',
+                        choices=[
+                            'snli', 'mnli', 'm30k', '2018_simple',
+                            '2018_formula', '2018_graph'
+                        ])
+    parser.add_argument('model', choices=['transformer', 'lstm'])
+>>>>>>> 8827df35f25b62e0be55d735a2ca43f6d788ce6b
     parser.add_argument('--hid_dim', default=256, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--lr', default=5e-4, type=float)
@@ -277,9 +313,13 @@ def set_args():
     parser.add_argument('--epoch_num', default=10, type=int)
     parser.add_argument('--test_run', action='store_true')
     args = parser.parse_args()
+<<<<<<< HEAD
     args.formula = args.data in {'snli','mnli'}
     if args.test_run:
         args.batch_size = 4
+=======
+    args.formula = args.data in {'snli', 'mnli'}
+>>>>>>> 8827df35f25b62e0be55d735a2ca43f6d788ce6b
     return args
 
 
