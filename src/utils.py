@@ -33,7 +33,7 @@ def translate_sentence(src,
         model = model.module
     model.eval()
  
-    assert hasattr(model,'name') and model.name in {'transformer','lstm'}
+    assert hasattr(model,'name') and model.name in {'transformer','lstm','gru'}
     assert hasattr(src_field, 'vocab'), 'build vocab first!'
 
     # Tokenize if not tokenized
@@ -43,7 +43,10 @@ def translate_sentence(src,
         else:
             tokens = [x.lower() for x in tokenize_de(src)]
     elif isinstance(src, list):
-        tokens = src
+        if formula:
+            tokens = src
+        else:
+            tokens = [x.lower() for x in src]
     else:
         raise ValueError()
 
@@ -79,12 +82,12 @@ def translate_sentence(src,
         trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
         return trg_tokens[1:], attention
 
-    elif model.name == 'lstm':
+    elif model.name in {'lstm','gru'}:
         src_tensor = torch.LongTensor(src_indexes).unsqueeze(1).to(device)
         src_len = torch.LongTensor([len(src_indexes)]).to(device)
         
         with torch.no_grad():
-            encoder_outputs,hidden,cell  = model.encoder(src_tensor, src_len)
+            encoder_outputs,hidden  = model.encoder(src_tensor, src_len)
 
         mask = model.create_mask(src_tensor)
             
@@ -97,7 +100,7 @@ def translate_sentence(src,
             trg_tensor = torch.LongTensor([trg_indexes[-1]]).to(device)
                     
             with torch.no_grad():
-                output, hidden, cell, attention = model.decoder(trg_tensor, hidden,cell, encoder_outputs, mask)
+                output, hidden, attention = model.decoder(trg_tensor, hidden,encoder_outputs, mask)
 
             attentions[i] = attention
                 
@@ -122,8 +125,7 @@ def calculate_bleu(data,
                    device,
                    max_len=50,
                    trans_path=None,
-                   formula=True,
-                   limit=None):
+                   formula=True):
 
     trgs = []
     pred_trgs = []

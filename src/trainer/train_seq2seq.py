@@ -8,7 +8,7 @@ from torch import nn
 import wandb
 
 from config import DATA_DIR
-from model import transformer_seq2seq, lstm_seq2seq
+from model import transformer_seq2seq, lstm_seq2seq, gru_seq2seq
 from utils import calculate_bleu
 from preprocess.dataset import load_data
 
@@ -34,7 +34,13 @@ def initialize_weights(m):
 
 
 def forward(model, data, criterion):
-    if model.name == 'transformer':
+
+    if isinstance(model,torch.nn.DataParallel):
+        name = model.module.name
+    else:
+        name = model.name
+
+    if name == 'transformer':
 
         src = data.src[0]
         trg = data.trg[0]
@@ -50,11 +56,13 @@ def forward(model, data, criterion):
         trg = trg[:, 1:].contiguous().view(-1)
         return criterion(output, trg)
     
-    elif model.name == 'lstm':
+    elif name in {'lstm','gru'}:
         src,src_len = data.src
         trg = data.trg[0]
 
         # Forward
+        src = src.transpose(0,1)
+        trg = trg.transpose(0,1)
         output = model(src, src_len, trg)
 
         # Reshape
@@ -62,9 +70,12 @@ def forward(model, data, criterion):
         output = output[1:].view(-1, output_dim)
 
         # Make golden output
-        trg = trg.transpose(0,1)[1:].contiguous().view(-1)
-
+        trg = trg[1:].contiguous().view(-1)
+    
         return criterion(output, trg)
+    
+    else:
+        raise ValueErorr('Choose transformer or lstm')
 
 def train(args, model, dataset):
     """
@@ -148,6 +159,12 @@ def init_model(args, src_field, trg_field):
             output_dim=output_dim,
             hid_dim = 14,dropout=0.1,device=DEVICE)
 
+        elif args.model == 'gru':
+            model = gru_seq2seq.Seq2Seq(input_dim=input_dim,
+            output_dim=output_dim,
+            hid_dim = 14,dropout=0.1,device=DEVICE)
+        
+
     else:
         if args.model == 'transformer':
             model = transformer_seq2seq.Seq2Seq(input_dim=len(src_field.vocab),
@@ -164,12 +181,19 @@ def init_model(args, src_field, trg_field):
             output_dim=output_dim,
             hid_dim = args.hid_dim,dropout=0.1,device=DEVICE)
 
+        elif args.model == 'gru':
+            model = gru_seq2seq.Seq2Seq(input_dim=input_dim,
+            output_dim=output_dim,
+            hid_dim = args.hid_dim,dropout=0.1,device=DEVICE)
+
     # Handle GPU
     gpu_num = torch.cuda.device_count()
     logging.info(f'Available gpu num: {gpu_num}')
     if torch.cuda.is_available() and gpu_num > 1 and not args.test_run:
         logging.info(f'Use {gpu_num} GPU')
         model = torch.nn.DataParallel(model)
+    else:
+        logging.info(f'Use single GPU')
     model = model.to(DEVICE)
 
     # Init weight
@@ -232,8 +256,7 @@ def main():
                         model,
                         DEVICE,
                         trans_path=epoch_trans_path,
-                        formula=args.formula,
-                        limit=1000)
+                        formula=args.formula)
 
     if not args.test_run:
         wandb.log({"test_loss": test_loss})
@@ -244,7 +267,7 @@ def main():
 def set_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('data', choices=['snli','mnli','m30k'])
-    parser.add_argument('model', choices=['transformer','lstm'])
+    parser.add_argument('model', choices=['transformer','lstm','gru'])
     parser.add_argument('--hid_dim', default=256, type=int)
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--lr', default=5e-4, type=float)
@@ -255,6 +278,8 @@ def set_args():
     parser.add_argument('--test_run', action='store_true')
     args = parser.parse_args()
     args.formula = args.data in {'snli','mnli'}
+    if args.test_run:
+        args.batch_size = 4
     return args
 
 

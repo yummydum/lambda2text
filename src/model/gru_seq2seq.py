@@ -8,7 +8,7 @@ class Seq2Seq(nn.Module):
     def __init__(self, input_dim, output_dim,hid_dim, device,dropout):
         super().__init__()
         
-        self.name = 'lstm'
+        self.name = 'gru'
         self.src_pad_idx = 1
         self.encoder = Encoder(input_dim,hid_dim,hid_dim,hid_dim,dropout)
         self.decoder = Decoder(output_dim,hid_dim,hid_dim,hid_dim,dropout)
@@ -18,7 +18,7 @@ class Seq2Seq(nn.Module):
         mask = (src != self.src_pad_idx).permute(1, 0)
         return mask
         
-    def forward(self, src, src_len, trg, teacher_forcing_ratio = 1):
+    def forward(self, src, src_len, trg, teacher_forcing_ratio = 0.5):
         
         #src = [src len, batch size]
         #src_len = [batch size]
@@ -72,9 +72,9 @@ class Encoder(nn.Module):
         
         self.embedding = nn.Embedding(input_dim, emb_dim)
         
-        self.rnn = nn.LSTM(emb_dim, enc_hid_dim)
+        self.rnn = nn.GRU(emb_dim, enc_hid_dim, bidirectional = True)
         
-        self.fc = nn.Linear(enc_hid_dim, dec_hid_dim)
+        self.fc = nn.Linear(enc_hid_dim * 2, dec_hid_dim)
         
         self.dropout = nn.Dropout(dropout)
         
@@ -84,26 +84,51 @@ class Encoder(nn.Module):
         #src_len = [batch size]
         
         embedded = self.dropout(self.embedding(src))
-                        
+        
+        #embedded = [src len, batch size, emb dim]
+                
         packed_embedded = nn.utils.rnn.pack_padded_sequence(embedded, src_len,enforce_sorted=False)
                 
         packed_outputs, hidden = self.rnn(packed_embedded)
-                                             
+                                 
+        #packed_outputs is a packed sequence containing all hidden states
+        #hidden is now from the final non-padded element in the batch
+            
         outputs, _ = nn.utils.rnn.pad_packed_sequence(packed_outputs) 
             
+        #outputs is now a non-packed sequence, all hidden states obtained
+        #  when the input is a pad token are all zeros
+            
+        #outputs = [src len, batch size, hid dim * num directions]
+        #hidden = [n layers * num directions, batch size, hid dim]
+        
+        #hidden is stacked [forward_1, backward_1, forward_2, backward_2, ...]
+        #outputs are always from the last layer
+        
+        #hidden [-2, :, : ] is the last of the forwards RNN 
+        #hidden [-1, :, : ] is the last of the backwards RNN
+        
+        #initial decoder hidden is final hidden state of the forwards and backwards 
+        #  encoder RNNs fed through a linear layer
+        hidden = torch.tanh(self.fc(torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim = 1)))
+        
+        #outputs = [src len, batch size, enc hid dim * 2]
+        #hidden = [batch size, dec hid dim]
+        
         return outputs, hidden
 
 class Attention(nn.Module):
     def __init__(self, enc_hid_dim, dec_hid_dim):
         super().__init__()
         
-        self.attn = nn.Linear((enc_hid_dim) + dec_hid_dim, dec_hid_dim)
+        self.attn = nn.Linear((enc_hid_dim * 2) + dec_hid_dim, dec_hid_dim)
         self.v = nn.Linear(dec_hid_dim, 1, bias = False)
         
     def forward(self, hidden, encoder_outputs, mask):
         
         #hidden = [batch size, dec hid dim]
-        #encoder_outputs = [src len, batch size, enc hid dim]
+        #encoder_outputs = [src len, batch size, enc hid dim * 2]
+        
         batch_size = encoder_outputs.shape[1]
         src_len = encoder_outputs.shape[0]
         
@@ -131,14 +156,15 @@ class Decoder(nn.Module):
     def __init__(self, output_dim, emb_dim, enc_hid_dim, dec_hid_dim, dropout):
         super().__init__()
 
+
         self.output_dim = output_dim
         self.attention = Attention(enc_hid_dim,dec_hid_dim)
         
         self.embedding = nn.Embedding(output_dim, emb_dim)
         
-        self.rnn = nn.LSTM(enc_hid_dim + emb_dim, dec_hid_dim)
+        self.rnn = nn.GRU((enc_hid_dim * 2) + emb_dim, dec_hid_dim)
         
-        self.fc_out = nn.Linear(enc_hid_dim + dec_hid_dim + emb_dim, output_dim)
+        self.fc_out = nn.Linear((enc_hid_dim * 2) + dec_hid_dim + emb_dim, output_dim)
         
         self.dropout = nn.Dropout(dropout)
         
@@ -156,7 +182,8 @@ class Decoder(nn.Module):
         embedded = self.dropout(self.embedding(input))
         
         #embedded = [1, batch size, emb dim]
-        a = self.attention(hidden[0].squeeze(0), encoder_outputs, mask)
+        
+        a = self.attention(hidden, encoder_outputs, mask)
                 
         #a = [batch size, src len]
         
@@ -180,9 +207,16 @@ class Decoder(nn.Module):
         
         #rnn_input = [1, batch size, (enc hid dim * 2) + emb dim]
             
-        output, hidden = self.rnn(rnn_input, hidden)
+        output, hidden = self.rnn(rnn_input, hidden.unsqueeze(0))
         
-        assert (output == hidden[0]).all()
+        #output = [seq len, batch size, dec hid dim * n directions]
+        #hidden = [n layers * n directions, batch size, dec hid dim]
+        
+        #seq len, n layers and n directions will always be 1 in this decoder, therefore:
+        #output = [1, batch size, dec hid dim]
+        #hidden = [1, batch size, dec hid dim]
+        #this also means that output == hidden
+        assert (output == hidden).all()
         
         embedded = embedded.squeeze(0)
         output = output.squeeze(0)
@@ -192,4 +226,4 @@ class Decoder(nn.Module):
         
         #prediction = [batch size, output dim]
         
-        return prediction, hidden, a.squeeze(1)
+        return prediction, hidden.squeeze(0), a.squeeze(1)

@@ -11,7 +11,9 @@ def tokenize_en(text):
 
 def main():
     for data in ['snli','mnli']:
+
         data_path = DATA_DIR / f'{data}_split_tokenized'
+
         if not data_path.exists():
             data_path.mkdir()
         if data == 'mnli':
@@ -23,13 +25,19 @@ def main():
 
         result_path = data_path / f'{data}_0.txt'
         count = 0
+        sentences = set()
+
         f = result_path.open(mode='w')
         for pair in tqdm(dataset):
-            key1 = 'premise'
-            key2 = 'hypothesis'
 
-            for key in [key1, key2]:
-                sentence = ' '.join(tokenize_en(pair[key])) + '\n'
+            # Tokenize
+            sentence = ' '.join(tokenize_en(pair['hypothesis'])) + '\n'
+            sentences.add(sentence)
+
+            # Don't write same sentence
+            if sentence in sentences:
+                continue
+            else:
                 f.write(sentence)
 
             count += 1
