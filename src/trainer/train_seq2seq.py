@@ -35,7 +35,7 @@ def initialize_weights(m):
 
 def forward(model, data, criterion):
 
-    if isinstance(model,torch.nn.DataParallel):
+    if isinstance(model, torch.nn.DataParallel):
         name = model.module.name
     else:
         name = model.name
@@ -55,14 +55,14 @@ def forward(model, data, criterion):
         # Make golden output
         trg = trg[:, 1:].contiguous().view(-1)
         return criterion(output, trg)
-    
-    elif name in {'lstm','gru'}:
-        src,src_len = data.src
+
+    elif name in {'lstm', 'gru'}:
+        src, src_len = data.src
         trg = data.trg[0]
 
         # Forward
-        src = src.transpose(0,1)
-        trg = trg.transpose(0,1)
+        src = src.transpose(0, 1)
+        trg = trg.transpose(0, 1)
         output = model(src, src_len, trg)
 
         # Reshape
@@ -71,9 +71,9 @@ def forward(model, data, criterion):
 
         # Make golden output
         trg = trg[1:].contiguous().view(-1)
-    
+
         return criterion(output, trg)
-    
+
     else:
         raise ValueErorr('Choose transformer or lstm')
 
@@ -164,9 +164,10 @@ def init_model(args, src_field, trg_field):
 
         elif args.model == 'gru':
             model = gru_seq2seq.Seq2Seq(input_dim=input_dim,
-            output_dim=output_dim,
-            hid_dim = 14,dropout=0.1,device=DEVICE)
-        
+                                        output_dim=output_dim,
+                                        hid_dim=14,
+                                        dropout=0.1,
+                                        device=DEVICE)
 
     else:
         if args.model == 'transformer':
@@ -189,8 +190,10 @@ def init_model(args, src_field, trg_field):
 
         elif args.model == 'gru':
             model = gru_seq2seq.Seq2Seq(input_dim=input_dim,
-            output_dim=output_dim,
-            hid_dim = args.hid_dim,dropout=0.1,device=DEVICE)
+                                        output_dim=output_dim,
+                                        hid_dim=args.hid_dim,
+                                        dropout=0.1,
+                                        device=DEVICE)
 
     # Handle GPU
     gpu_num = torch.cuda.device_count()
@@ -257,12 +260,12 @@ def main():
     logging.info('Finish process')
     test_loss = evaluate(args, model, test_data)
     bleu = calculate_bleu(dev_data.dataset,
-                        SRC,
-                        TRG,
-                        model,
-                        DEVICE,
-                        trans_path=epoch_trans_path,
-                        formula=args.formula)
+                          SRC,
+                          TRG,
+                          model,
+                          DEVICE,
+                          trans_path=epoch_trans_path,
+                          formula=args.formula)
 
     if not args.test_run:
         wandb.log({"test_loss": test_loss})
@@ -287,7 +290,7 @@ def set_args():
     parser.add_argument('--epoch_num', default=10, type=int)
     parser.add_argument('--test_run', action='store_true')
     args = parser.parse_args()
-    args.formula = args.data in {'snli','mnli'}
+    args.formula = args.data in {'snli', 'mnli'}
     if args.test_run:
         args.batch_size = 4
     return args

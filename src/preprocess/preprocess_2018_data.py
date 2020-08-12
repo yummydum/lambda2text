@@ -12,7 +12,10 @@ with (source_dir / 'snli_0428.txt').open('r') as f_r:
         writer = csv.writer(f_w, delimiter='\t')
         writer.writerow(['src', 'original', 'trg'])
         for line in f_r:
-            line = line.replace('\n', '').split('# ')
+            line = line.replace('\n', '').replace('(',
+                                                  ' ( ').replace(')', ' ) ')
+            line = ' '.join(line.split()).rstrip()
+            line = line.split('# ')
             writer.writerow(line)
 
 with (source_dir / 'snli_0428_formula.txt').open('r') as f_r:
@@ -20,7 +23,10 @@ with (source_dir / 'snli_0428_formula.txt').open('r') as f_r:
         writer = csv.writer(f_w, delimiter='\t')
         writer.writerow(['src', 'original', 'trg'])
         for line in f_r:
-            line = line.replace('\n', '').split('# ')
+            line = line.replace('\n', '').replace('(',
+                                                  ' ( ').replace(')', ' ) ')
+            line = ' '.join(line.split()).rstrip()
+            line = line.split('# ')
             writer.writerow(line)
 
 with (source_dir / 'snli_0428_graph.txt').open('r') as f_r:
@@ -28,6 +34,6 @@ with (source_dir / 'snli_0428_graph.txt').open('r') as f_r:
         writer = csv.writer(f_w, delimiter='\t')
         writer.writerow(['src', 'original', 'trg'])
         for line in f_r:
-            line = line.replace(',', ' ').replace('\n', '')
+            line = line.replace(',', ' , ').replace('\n', '')
             line = line.split('# ')
             writer.writerow(line)
