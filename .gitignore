@@ -1,6 +1,7 @@
 pmb-3.0.0-sample
 pmb-sample-3.0.0.zip
 data/*
+!data/snli_datasets.zip
 .vscode
 *.python-version
 *__pycache__
