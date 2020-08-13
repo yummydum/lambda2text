@@ -61,16 +61,14 @@ def forward(model, data, criterion):
         trg = data.trg[0]
 
         # Forward
-        src = src.transpose(0, 1)
-        trg = trg.transpose(0, 1)
         output = model(src, src_len, trg)
-
+        output = output.transpose(0,1)  # need because of DataParallel
         # Reshape
         output_dim = output.shape[-1]
-        output = output[1:].view(-1, output_dim)
+        output = output[1:].contiguous().view(-1, output_dim)
 
         # Make golden output
-        trg = trg[1:].contiguous().view(-1)
+        trg = trg.transpose(0,1)[1:].contiguous().view(-1)
 
         return criterion(output, trg)
 
@@ -168,7 +166,8 @@ def init_model(args, src_field, trg_field):
                                         hid_dim=14,
                                         dropout=0.1,
                                         device=DEVICE)
-
+        else:
+            raise ValueErorr()
     else:
         if args.model == 'transformer':
             model = transformer_seq2seq.Seq2Seq(input_dim=len(src_field.vocab),
@@ -194,13 +193,20 @@ def init_model(args, src_field, trg_field):
                                         hid_dim=args.hid_dim,
                                         dropout=args.dropout,
                                         device=DEVICE)
+        else:
+            raise ValueErorr()
 
     # Handle GPU
     gpu_num = torch.cuda.device_count()
     logging.info(f'Available gpu num: {gpu_num}')
     if torch.cuda.is_available() and gpu_num > 1 and not args.test_run:
         logging.info(f'Use {gpu_num} GPU')
-        model = torch.nn.DataParallel(model)
+        if model.name == 'transformer':
+            model = torch.nn.DataParallel(model)
+        elif model.name in {'gru','lstm'}:
+            model = torch.nn.DataParallel(model)
+        else:
+            raise ValueErorr()
     else:
         logging.info(f'Use single GPU')
     model = model.to(DEVICE)
@@ -209,7 +215,6 @@ def init_model(args, src_field, trg_field):
     model.apply(initialize_weights)
 
     return model
-
 
 def main():
     args = set_args()

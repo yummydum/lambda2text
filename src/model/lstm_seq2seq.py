@@ -20,11 +20,14 @@ class Seq2Seq(nn.Module):
 
     def forward(self, src, src_len, trg, teacher_forcing_ratio=1):
 
-        #src = [src len, batch size]
+        #src = [batch size,src len]
         #src_len = [batch size]
-        #trg = [trg len, batch size]
+        #trg = [batch size,trg len]
         #teacher_forcing_ratio is probability to use teacher forcing
         #e.g. if teacher_forcing_ratio is 0.75 we use teacher forcing 75% of the time
+
+        src = src.transpose(0, 1)
+        trg = trg.transpose(0, 1)
 
         batch_size = src.shape[1]
         trg_len = trg.shape[0]
@@ -34,15 +37,13 @@ class Seq2Seq(nn.Module):
         outputs = torch.zeros(trg_len, batch_size,
                               trg_vocab_size).to(self.device)
 
-        #encoder_outputs is all hidden states of the input sequence, back and forwards
-        #hidden is the final forward and backward hidden states, passed through a linear layer
+        #hidden is the final hidden states, passed through a linear layer
         encoder_outputs, hidden = self.encoder(src, src_len)
 
         #first input to the decoder is the <sos> tokens
         input = trg[0, :]
 
         mask = self.create_mask(src)
-
         #mask = [batch size, src len]
 
         for t in range(1, trg_len):
@@ -66,7 +67,7 @@ class Seq2Seq(nn.Module):
             #if not, use predicted token
             input = trg[t] if teacher_force else top1
 
-        return outputs
+        return outputs.transpose(0,1)
 
 
 class Encoder(nn.Module):
@@ -91,7 +92,8 @@ class Encoder(nn.Module):
 
         packed_outputs, hidden = self.rnn(packed_embedded)
 
-        outputs, _ = nn.utils.rnn.pad_packed_sequence(packed_outputs)
+        total_length = src.size()[0]
+        outputs, _ = nn.utils.rnn.pad_packed_sequence(packed_outputs,total_length=total_length)
 
         return outputs, hidden
 
@@ -100,13 +102,14 @@ class Attention(nn.Module):
     def __init__(self, enc_hid_dim, dec_hid_dim):
         super().__init__()
 
-        self.attn = nn.Linear((enc_hid_dim) + dec_hid_dim, dec_hid_dim)
+        self.attn = nn.Linear(enc_hid_dim + dec_hid_dim, dec_hid_dim)
         self.v = nn.Linear(dec_hid_dim, 1, bias=False)
 
     def forward(self, hidden, encoder_outputs, mask):
 
-        #hidden = [batch size, dec hid dim]
-        #encoder_outputs = [src len, batch size, enc hid dim]
+        # hidden = [batch size, dec hid dim]
+        # encoder_outputs = [src len, batch size, enc hid dim]
+        # mask = [batch size, src len]
         batch_size = encoder_outputs.shape[1]
         src_len = encoder_outputs.shape[0]
 
@@ -126,7 +129,6 @@ class Attention(nn.Module):
         attention = self.v(energy).squeeze(2)
 
         #attention = [batch size, src len]
-
         attention = attention.masked_fill(mask == 0, -1e10)
 
         return F.softmax(attention, dim=1)
