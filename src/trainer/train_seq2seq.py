@@ -248,7 +248,6 @@ def main():
     logging.info('Start training!')
     for epoch in range(args.epoch_num):
         logging.info(f'Now in {epoch}th epoch')
-        epoch_trans_path = DATA_DIR / 'translation' / f'translation_log_{args.data}_{args.model}.txt'
 
         # Train & eval
         train(args, model, train_data)
@@ -262,7 +261,7 @@ def main():
             logging.info(f'Saving model to {result_path}')
             torch.save(model, str(result_path))
 
-    logging.info('Finish process')
+    epoch_trans_path = DATA_DIR / 'translation' / f'translation_log_{args.data}_{args.model}.txt'
     test_loss = evaluate(args, model, test_data)
     bleu = calculate_bleu(dev_data.dataset,
                           SRC,
@@ -275,6 +274,8 @@ def main():
     if not args.test_run:
         wandb.log({"test_loss": test_loss})
         wandb.log({"bleu": bleu * 100})
+
+    logging.info('Finish process')
     return 0
 
 
@@ -295,7 +296,7 @@ def set_args():
     parser.add_argument('--epoch_num', default=10, type=int)
     parser.add_argument('--test_run', action='store_true')
     args = parser.parse_args()
-    args.formula = args.data in {'snli', 'mnli'}
+    args.formula = args.data in {'snli', 'mnli','2018_simple','2018_formula','2018_graph'}
     if args.test_run:
         args.batch_size = 4
     return args

@@ -38,6 +38,9 @@ def translate_sentence(src,
 
     # Tokenize if not tokenized
     if isinstance(src, str):
+
+        raise NotImplementedError('Fix formula tokenization first')
+
         if formula:
             tokens = tokenize_formal(src)
         else:
