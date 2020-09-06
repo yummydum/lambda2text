@@ -18,9 +18,11 @@ Amrozi accused his brother , whom he called " the witness " , of deliberately di
 
 # TODO:
 
-- Try English-Dutch model for sanity check 
-    - Also could be used to show how hard lambda2text is for vanila seq2seq
-- Implement encoders which takes tree structure in the logical formula in account
+- Apply ccg2lambda to SICK and extract unproven subgoals (9/10)
+- Implement baseline method (9/10)
+- Complete Error analysis and summarize the result in a notebook (9/17)
+- Complete the first attempt to solve the error (10/1)
+
 
 # Preprocess
 
@@ -44,3 +46,4 @@ make run gpu=0,1 id=<sweep_id>
 
 # Reference
 - https://github.com/bentrevett/pytorch-seq2seq
+

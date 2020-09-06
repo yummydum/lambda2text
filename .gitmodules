@@ -1,0 +1,4 @@
+[submodule "ccg2lambda"]
+	path = ccg2lambda
+	url = https://github.com/yummydum/ccg2lambda.git
+	branch = version2020
