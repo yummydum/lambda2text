@@ -2,7 +2,7 @@ cython==0.29.21
 ipdb==0.13.3
 jupyter==1.0.0
 nltk==3.4.5
-numpy==1.18.5
+numpy==1.22.0
 pytest==6.0.0
 tqdm==4.46.1
 spacy==2.1.9
